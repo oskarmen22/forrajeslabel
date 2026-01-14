@@ -29,7 +29,7 @@
     <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div class="text-yellow-500 flex flex-col items-center gap-4">
             <i data-lucide="loader" class="animate-spin w-10 h-10"></i>
-            <span class="font-bold uppercase tracking-widest">CONECTANDO...</span>
+            <span class="font-bold uppercase tracking-widest">CARGANDO...</span>
         </div>
     </div>
 
@@ -56,62 +56,24 @@
         </div>
     </div>
 
-    <!-- PANTALLA DE ACCESO (LOGIN / REGISTRO) -->
+    <!-- PANTALLA LOGIN -->
     <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-40 hidden">
         <div class="bg-white max-w-md w-full rounded-xl shadow-2xl overflow-hidden border-4 border-yellow-500 mx-4 fade-in">
-            
-            <!-- Header Dinámico -->
             <div class="bg-yellow-500 p-6 text-center transition-all" id="auth-header">
                 <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">FORRAJES LABEL</h1>
                 <p class="text-slate-900 font-bold opacity-75" id="auth-subtitle">INICIAR SESIÓN</p>
             </div>
-
             <form id="auth-form" class="p-8 space-y-4">
-                
-                <!-- Caja de Error -->
                 <div id="auth-error" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded text-xs font-bold mb-4 flex items-center gap-2">
-                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                    <span id="auth-error-msg">Error</span>
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i><span id="auth-error-msg">Error</span>
                 </div>
-
-                <!-- Campos de Registro (Ocultos por defecto) -->
                 <div id="register-fields" class="hidden space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">NOMBRE DEL EMPLEADO</label>
-                        <div class="relative">
-                            <i data-lucide="user-plus" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
-                            <input type="text" id="reg-realname" class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none uppercase" placeholder="EJ. JUAN PEREZ">
-                        </div>
-                    </div>
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">NOMBRE DEL EMPLEADO</label><div class="relative"><i data-lucide="user-plus" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i><input type="text" id="reg-realname" class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none uppercase" placeholder="EJ. JUAN PEREZ"></div></div>
                 </div>
-
-                <!-- Campos Comunes (Usuario y Pass) -->
-                <div>
-                    <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">USUARIO DE SISTEMA</label>
-                    <div class="relative">
-                        <i data-lucide="user" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
-                        <input type="text" id="login-username" class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none uppercase" placeholder="EJ. OSCAR">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">CONTRASEÑA</label>
-                    <div class="relative">
-                        <i data-lucide="lock" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
-                        <input type="password" id="login-password" required class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none">
-                    </div>
-                </div>
-                
-                <!-- Botón de Acción -->
-                <button type="submit" id="auth-btn" class="w-full bg-slate-900 text-yellow-500 font-black py-4 rounded-lg hover:bg-slate-800 transition-all shadow-lg uppercase tracking-wide transform active:scale-95">
-                    ENTRAR AL SISTEMA
-                </button>
-                
-                <!-- Toggle -->
-                <div id="toggle-auth" class="text-center text-xs font-bold text-slate-400 cursor-pointer hover:text-slate-600 mt-6 border-t pt-4">
-                    ¿NO TIENES CUENTA? <span class="text-blue-600 underline">REGÍSTRATE AQUÍ</span>
-                </div>
-
+                <div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">USUARIO DE SISTEMA</label><div class="relative"><i data-lucide="user" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i><input type="text" id="login-username" class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none uppercase" placeholder="EJ. OSCAR"></div></div>
+                <div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">CONTRASEÑA</label><div class="relative"><i data-lucide="lock" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i><input type="password" id="login-password" required class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none"></div></div>
+                <button type="submit" id="auth-btn" class="w-full bg-slate-900 text-yellow-500 font-black py-4 rounded-lg hover:bg-slate-800 transition-all shadow-lg uppercase tracking-wide transform active:scale-95">ENTRAR AL SISTEMA</button>
+                <div id="toggle-auth" class="text-center text-xs font-bold text-slate-400 cursor-pointer hover:text-slate-600 mt-6 border-t pt-4">¿NO TIENES CUENTA? <span class="text-blue-600 underline">REGÍSTRATE AQUÍ</span></div>
             </form>
         </div>
     </div>
@@ -132,15 +94,12 @@
                     <div id="status-printer" title="WiFi Impresora" class="w-3 h-3 rounded-full bg-red-500 transition-colors"></div>
                     <div id="status-ble" title="Bluetooth Celular" class="w-3 h-3 rounded-full bg-slate-600 transition-colors border border-slate-400"></div>
                 </div>
-                <button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600 transition-colors">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                </button>
+                <button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
             </div>
         </header>
 
         <div id="notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 z-50 hidden w-max max-w-[90%] text-sm">
-            <span id="notif-icon"></span>
-            <span id="notif-msg"></span>
+            <span id="notif-icon"></span><span id="notif-msg"></span>
         </div>
 
         <main class="max-w-6xl mx-auto p-4">
@@ -201,9 +160,8 @@
                 </div>
             </div>
 
-            <!-- VISTA DISEÑADOR (SIN CAMBIOS) -->
+            <!-- VISTA DISEÑADOR -->
             <div id="view-designer" class="hidden fixed inset-0 bg-slate-100 z-50 flex flex-col">
-                <!-- (Igual que antes) -->
                 <div class="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md">
                     <h2 class="font-black text-yellow-500 italic flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5"></i> EDITOR DE ETIQUETAS</h2>
                     <div class="flex gap-2">
@@ -261,9 +219,9 @@
                     <!-- BLUETOOTH CONNECT -->
                     <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
                         <h3 class="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2"><i data-lucide="bluetooth" class="w-4 h-4"></i> CONEXIÓN DIRECTA (BLUETOOTH)</h3>
-                        <p class="text-[10px] text-blue-700 mb-3">Úsalo si no hay WiFi o para configurar la red. (Requiere Chrome/Edge).</p>
+                        <p class="text-[10px] text-blue-700 mb-3">Úsalo si no hay WiFi o para configurar la red. (Requiere Chrome/Edge en PC o Android).</p>
                         <button onclick="connectBLE()" id="btn-ble-connect" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-xs hover:bg-blue-700 shadow flex justify-center items-center gap-2">
-                            <i data-lucide="search" class="w-3 h-3"></i> BUSCAR TODOS LOS DISPOSITIVOS
+                            <i data-lucide="search" class="w-3 h-3"></i> BUSCAR FORRAJES-ESP32
                         </button>
                         <div id="ble-status" class="text-[10px] font-bold text-slate-400 mt-1 text-center">Desconectado</div>
                     </div>
@@ -339,9 +297,9 @@
         // --- BLE LOGIC ---
         window.connectBLE = async () => {
             try {
-                showNotify("Buscando... Selecciona 'FORRAJES-ESP32'", "warning");
+                showNotify("Selecciona 'FORRAJES-ESP32'...", "warning");
                 bleDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
+                    acceptAllDevices: true, // <--- AQUI ESTA EL CAMBIO CRÍTICO
                     optionalServices: [BLE_SERVICE_UUID]
                 });
                 bleDevice.addEventListener('gattserverdisconnected', () => {
