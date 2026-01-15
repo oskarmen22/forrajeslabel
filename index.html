@@ -498,7 +498,7 @@
             if (!bleCharWrite) return false;
             try {
                 const json = JSON.stringify(dataObj);
-                const chunkSize = 100; // 100 bytes por paquete
+                const chunkSize = 50; // Reducido a 50 bytes para mayor seguridad
                 const encoder = new TextEncoder();
                 
                 for (let i = 0; i < json.length; i += chunkSize) {
@@ -506,6 +506,7 @@
                     await bleCharWrite.writeValue(encoder.encode(chunk));
                     // Pausa de 50ms entre paquetes para que el ESP32 procese
                     await new Promise(r => setTimeout(r, 50)); 
+                    console.log("Enviando paquete BLE " + i + "/" + json.length);
                 }
                 return true;
             } catch (e) {
@@ -581,17 +582,20 @@
             
             // 1. INTENTO BLUETOOTH
             if (bleCharWrite && bleDevice && bleDevice.gatt.connected) {
+                console.log("Intentando envío por Bluetooth...");
                 success = await sendViaBLE(payload);
                 if (success) showNotify("¡Tiraje enviado por BLUETOOTH!", "success");
+                else console.error("Fallo envío Bluetooth");
             }
 
-            // 2. INTENTO WIFI (Si falló BT)
+            // 2. INTENTO WIFI (Si falló BT o no estaba conectado)
             if (!success) {
+                console.log("Intentando envío por WiFi...");
                 try {
                     const controller = new AbortController(); setTimeout(() => controller.abort(), 3000);
                     await fetch(`http://${ip}/configure`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload), signal: controller.signal, mode: 'cors' });
                     success = true; showNotify("¡Tiraje enviado por WIFI!", "success");
-                } catch (e) { }
+                } catch (e) { console.error("Fallo envío WiFi:", e); }
             }
 
             if (!success) showNotify("⚠️ FALLÓ EL ENVÍO. Conecta Bluetooth o revisa la IP.", "error");
@@ -605,7 +609,7 @@
             } catch (e) {}
         }
 
-        // --- EXISTING LOGIC ---
+        // --- EXISTING LOGIC (Layouts, Drag, Auth, etc) ---
         async function loadLayoutsFromDB() { try { const snap = await getDoc(doc(db, "config", "layouts")); if (snap.exists()) { const loaded = snap.data(); if(loaded['4x6']) layouts['4x6'] = { ...layouts['4x6'], ...loaded['4x6'] }; if(loaded['2x2']) layouts['2x2'] = { ...layouts['2x2'], ...loaded['2x2'] }; } } catch (e) {} changeEditorSize(currentSizeId); renderProductionPreview(); }
         window.saveLayoutToDB = async () => { try { await setDoc(doc(db, "config", "layouts"), layouts); showNotify("Diseño guardado exitosamente en la base de datos", "success"); renderProductionPreview(); } catch (e) { showNotify("Error: " + e.message, "error"); } };
         window.changeEditorSize = (sizeId) => { currentSizeId = sizeId; const is4x6 = currentSizeId === '4x6'; document.getElementById('edit-size-4x6').className = is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('edit-size-2x2').className = !is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('prod-size-4x6').className = document.getElementById('edit-size-4x6').className; document.getElementById('prod-size-2x2').className = document.getElementById('edit-size-2x2').className; selectedElementKey = null; updatePropertiesPanel(); renderDesignerCanvas(); renderProductionPreview(); };
