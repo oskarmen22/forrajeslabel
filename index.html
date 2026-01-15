@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FORRAJES LABEL</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* Estilos personalizados */
         .hidden-tab { display: none; }
         .active-tab-btn { background-color: #0f172a; color: #eab308; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .inactive-tab-btn { color: #64748b; }
@@ -29,7 +32,7 @@
     <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div class="text-yellow-500 flex flex-col items-center gap-4">
             <i data-lucide="loader" class="animate-spin w-10 h-10"></i>
-            <span class="font-bold uppercase tracking-widest">CONECTANDO...</span>
+            <span class="font-bold uppercase tracking-widest">CARGANDO SISTEMA...</span>
         </div>
     </div>
 
@@ -43,12 +46,13 @@
                 Se programará la impresora para el rango: <br>
                 <span class="font-bold text-slate-900 text-lg" id="modal-range">--</span>
             </p>
-            <div class="bg-slate-100 p-2 rounded mb-4 text-xs flex items-center gap-2">
+            <!-- Indicador de método de envío -->
+            <div class="bg-slate-100 p-2 rounded mb-4 text-xs flex items-center gap-2 text-slate-500 font-bold">
                 <i data-lucide="radio" class="w-4 h-4 text-blue-500"></i>
-                <span id="send-method-display">Calculando ruta de envío...</span>
+                <span id="send-method-display">Calculando ruta...</span>
             </div>
             <div class="space-y-3">
-                <button onclick="confirmPrint('run')" class="w-full bg-slate-900 text-yellow-500 py-4 rounded-lg font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center justify-center gap-2">
+                <button onclick="confirmPrint('run')" class="w-full bg-slate-900 text-yellow-500 py-4 rounded-lg font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
                     PROGRAMAR Y ARRANCAR
                 </button>
             </div>
@@ -59,16 +63,23 @@
     <!-- PANTALLA DE ACCESO (LOGIN / REGISTRO) -->
     <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-40 hidden">
         <div class="bg-white max-w-md w-full rounded-xl shadow-2xl overflow-hidden border-4 border-yellow-500 mx-4 fade-in">
-            <div class="bg-yellow-500 p-6 text-center transition-all" id="auth-header">
+            
+            <!-- Header Dinámico (Cambia de color según modo) -->
+            <div class="bg-yellow-500 p-6 text-center transition-colors duration-300" id="auth-header">
                 <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">FORRAJES LABEL</h1>
                 <p class="text-slate-900 font-bold opacity-75" id="auth-subtitle">INICIAR SESIÓN</p>
             </div>
+
             <form id="auth-form" class="p-8 space-y-4">
-                <div id="auth-error" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded text-xs font-bold mb-4 flex items-center gap-2">
+                
+                <!-- Caja de Error -->
+                <div id="auth-error" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded text-xs font-bold mb-4 flex items-center gap-2 animate-pulse">
                     <i data-lucide="alert-circle" class="w-4 h-4"></i>
                     <span id="auth-error-msg">Error</span>
                 </div>
-                <div id="register-fields" class="hidden space-y-4">
+
+                <!-- Campos de Registro (Ocultos por defecto) -->
+                <div id="register-fields" class="hidden space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">NOMBRE DEL EMPLEADO</label>
                         <div class="relative">
@@ -77,6 +88,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Campos Comunes -->
                 <div>
                     <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">USUARIO DE SISTEMA</label>
                     <div class="relative">
@@ -84,6 +97,7 @@
                         <input type="text" id="login-username" class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none uppercase" placeholder="EJ. OSCAR">
                     </div>
                 </div>
+
                 <div>
                     <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">CONTRASEÑA</label>
                     <div class="relative">
@@ -91,9 +105,11 @@
                         <input type="password" id="login-password" required class="w-full pl-10 p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700 focus:border-yellow-500 outline-none">
                     </div>
                 </div>
-                <button type="submit" id="auth-btn" class="w-full bg-slate-900 text-yellow-500 font-black py-4 rounded-lg hover:bg-slate-800 transition-all shadow-lg uppercase tracking-wide transform active:scale-95">
+                
+                <button type="submit" id="auth-btn" class="w-full bg-slate-900 text-yellow-500 font-black py-4 rounded-lg hover:bg-slate-800 transition-colors shadow-lg uppercase tracking-wide transform active:scale-95">
                     ENTRAR AL SISTEMA
                 </button>
+                
                 <div id="toggle-auth" class="text-center text-xs font-bold text-slate-400 cursor-pointer hover:text-slate-600 mt-6 border-t pt-4">
                     ¿NO TIENES CUENTA? <span class="text-blue-600 underline">REGÍSTRATE AQUÍ</span>
                 </div>
@@ -103,6 +119,8 @@
 
     <!-- PANTALLA PRINCIPAL (APP) -->
     <div id="app-screen" class="hidden">
+        
+        <!-- Header -->
         <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-30 border-b-4 border-yellow-500 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-black text-yellow-500 italic truncate">FORRAJES LABEL</h1>
@@ -113,8 +131,8 @@
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex gap-1">
-                    <div id="status-db" title="Base de Datos" class="w-3 h-3 rounded-full bg-red-500 transition-colors"></div>
-                    <div id="status-printer" title="WiFi Impresora" class="w-3 h-3 rounded-full bg-red-500 transition-colors"></div>
+                    <div id="status-db" title="Base de Datos" class="w-3 h-3 rounded-full bg-red-500 transition-colors border border-slate-600"></div>
+                    <div id="status-printer" title="WiFi Impresora" class="w-3 h-3 rounded-full bg-red-500 transition-colors border border-slate-600"></div>
                     <div id="status-ble" title="Bluetooth Celular" class="w-3 h-3 rounded-full bg-slate-600 transition-colors border border-slate-400"></div>
                 </div>
                 <button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600 transition-colors">
@@ -123,60 +141,89 @@
             </div>
         </header>
 
-        <div id="notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 z-50 hidden w-max max-w-[90%] text-sm">
+        <!-- Notificaciones Flotantes -->
+        <div id="notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 z-50 hidden w-max max-w-[90%] text-sm transition-all">
             <span id="notif-icon"></span>
             <span id="notif-msg"></span>
         </div>
 
         <main class="max-w-6xl mx-auto p-4">
             
+            <!-- Barra de Navegación -->
             <div class="flex gap-2 mb-6 bg-white p-1 rounded-lg shadow-sm overflow-x-auto">
-                <button onclick="switchTab('production')" id="tab-production" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 active-tab-btn whitespace-nowrap"><i data-lucide="printer" class="w-4 h-4"></i> PROD</button>
-                <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn whitespace-nowrap"><i data-lucide="history" class="w-4 h-4"></i> HIST</button>
-                <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn whitespace-nowrap"><i data-lucide="settings" class="w-4 h-4"></i> AJUSTES</button>
+                <button onclick="switchTab('production')" id="tab-production" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 active-tab-btn whitespace-nowrap">
+                    <i data-lucide="printer" class="w-4 h-4"></i> PROD
+                </button>
+                <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn whitespace-nowrap">
+                    <i data-lucide="history" class="w-4 h-4"></i> HIST
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn whitespace-nowrap">
+                    <i data-lucide="settings" class="w-4 h-4"></i> AJUSTES
+                </button>
             </div>
 
-            <!-- VISTA PRODUCCIÓN -->
+            <!-- VISTA: PRODUCCIÓN -->
             <div id="view-production" class="grid md:grid-cols-2 gap-6">
+                <!-- Columna Izquierda: Configuración -->
                 <div class="space-y-4">
+                    <!-- Tarjeta 1: Producto -->
                     <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-slate-900 relative z-20">
                         <h2 class="text-xs font-bold text-slate-400 mb-2 uppercase">1. PRODUCTO & FORMATO</h2>
+                        
                         <div class="flex gap-2 mb-4">
-                            <button onclick="changeEditorSize('4x6')" id="prod-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs">4x6 HORIZONTAL</button>
-                            <button onclick="changeEditorSize('2x2')" id="prod-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs">2x2 CUADRADA</button>
+                            <button onclick="changeEditorSize('4x6')" id="prod-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs transition-colors">4x6 HORIZONTAL</button>
+                            <button onclick="changeEditorSize('2x2')" id="prod-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs transition-colors">2x2 CUADRADA</button>
                         </div>
+
                         <div class="relative">
                             <i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
                             <input type="text" id="prod-search" class="w-full pl-10 pr-10 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-800 focus:border-yellow-500 outline-none uppercase" placeholder="BUSCAR PRODUCTO...">
                             <button id="clear-search" class="absolute inset-y-0 right-0 pr-3 text-slate-400 hover:text-red-500 hidden"><i data-lucide="x" class="w-5 h-5"></i></button>
                         </div>
-                        <div id="prod-list" class="absolute top-full left-0 w-full bg-white border-2 border-slate-200 rounded-b-lg shadow-xl max-h-60 overflow-y-auto mt-1 z-50 hidden"></div>
+                        <div id="prod-list" class="absolute top-full left-0 w-full bg-white border-2 border-slate-200 rounded-b-lg shadow-xl max-h-60 overflow-y-auto mt-1 z-50 hidden">
+                            <!-- Lista dinámica -->
+                        </div>
                     </div>
 
+                    <!-- Tarjeta 2: Lote -->
                     <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-yellow-500">
                         <h2 class="text-xs font-bold text-slate-400 mb-2 uppercase">2. DATOS DEL LOTE</h2>
                         <div class="space-y-3">
                             <div class="flex gap-2 items-center bg-slate-50 p-2 rounded">
                                 <span class="text-xs font-bold text-slate-500">CADUCIDAD:</span>
                                 <input type="number" id="exp-duration" value="3" class="w-12 p-1 border rounded text-center font-bold">
-                                <select id="exp-unit" class="p-1 border rounded text-xs font-bold"><option value="days">DÍAS</option><option value="months" selected>MESES</option><option value="years">AÑOS</option></select>
+                                <select id="exp-unit" class="p-1 border rounded text-xs font-bold">
+                                    <option value="days">DÍAS</option>
+                                    <option value="months" selected>MESES</option>
+                                    <option value="years">AÑOS</option>
+                                </select>
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-xs">
                                 <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">LOTE</span><span id="disp-lot" class="font-mono font-bold">--</span></div>
                                 <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div>
                             </div>
                             <div class="flex gap-2">
-                                <div class="flex-1"><label class="text-[10px] font-bold text-slate-400">SERIE INICIO</label><input type="number" id="serial-start" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-slate-50"></div>
-                                <div class="flex-1"><label class="text-[10px] font-bold text-slate-400">SERIE FINAL</label><input type="number" id="serial-end" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-yellow-50 border-yellow-200"></div>
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold text-slate-400">SERIE INICIO</label>
+                                    <input type="number" id="serial-start" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-slate-50">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold text-slate-400">SERIE FINAL</label>
+                                    <input type="number" id="serial-end" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-yellow-50 border-yellow-200">
+                                </div>
                             </div>
-                            <div class="text-center text-[10px] text-slate-400">Total a imprimir: <span id="qty-calc" class="font-bold text-slate-700">1</span> etiquetas</div>
+                            <div class="text-center text-[10px] text-slate-400">
+                                Total a imprimir: <span id="qty-calc" class="font-bold text-slate-700">1</span> etiquetas
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Columna Derecha: Preview -->
                 <div class="space-y-4">
                     <div class="bg-white p-4 rounded-xl shadow-lg border relative flex flex-col items-center">
                         <span class="absolute top-0 right-0 bg-slate-200 text-[10px] px-2 font-bold text-slate-500">VISTA PREVIA REAL</span>
+                        <!-- Canvas Inyectado -->
                         <div id="production-preview-wrapper" class="mt-4 border border-dashed border-slate-300 p-2 overflow-hidden flex justify-center items-center bg-slate-100 w-full h-64"></div>
                         <div class="mt-2 text-xs text-slate-400 font-bold" id="preview-info">--</div>
                     </div>
@@ -186,26 +233,78 @@
                 </div>
             </div>
 
-            <!-- VISTA DISEÑADOR (SIN CAMBIOS) -->
+            <!-- VISTA: DISEÑADOR (Pantalla Completa) -->
             <div id="view-designer" class="hidden fixed inset-0 bg-slate-100 z-50 flex flex-col">
                 <div class="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md">
-                    <h2 class="font-black text-yellow-500 italic flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5"></i> EDITOR DE ETIQUETAS</h2>
+                    <h2 class="font-black text-yellow-500 italic flex items-center gap-2">
+                        <i data-lucide="edit-3" class="w-5 h-5"></i> EDITOR DE ETIQUETAS
+                    </h2>
                     <div class="flex gap-2">
-                        <button onclick="saveLayoutToDB()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> GUARDAR DISEÑO</button>
-                        <button onclick="switchTab('settings')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2"><i data-lucide="x" class="w-4 h-4"></i> CERRAR</button>
+                        <button onclick="saveLayoutToDB()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> GUARDAR DISEÑO
+                        </button>
+                        <button onclick="switchTab('settings')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2">
+                            <i data-lucide="x" class="w-4 h-4"></i> CERRAR
+                        </button>
                     </div>
                 </div>
+
                 <div class="flex-1 flex overflow-hidden">
+                    <!-- Panel Propiedades -->
                     <div class="w-72 bg-white shadow-xl border-r z-20 flex flex-col overflow-y-auto">
-                        <div class="p-4 border-b"><label class="text-[10px] font-bold text-slate-400 block mb-1">TAMAÑO ETIQUETA</label><div class="flex gap-2"><button onclick="changeEditorSize('4x6')" id="edit-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs">4x6</button><button onclick="changeEditorSize('2x2')" id="edit-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs">2x2</button></div></div>
+                        <div class="p-4 border-b">
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">TAMAÑO ETIQUETA</label>
+                            <div class="flex gap-2">
+                                <button onclick="changeEditorSize('4x6')" id="edit-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs">4x6</button>
+                                <button onclick="changeEditorSize('2x2')" id="edit-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs">2x2</button>
+                            </div>
+                        </div>
+
                         <div class="p-4 space-y-4">
-                            <div><label class="text-[10px] font-bold text-slate-400 mb-1 block">SELECCIONAR OBJETO</label><select id="object-selector" onchange="selectElement(this.value)" class="w-full p-2 border-2 rounded font-bold text-sm bg-slate-50 uppercase"><option value="">-- NINGUNO --</option><option value="productName">NOMBRE PRODUCTO</option><option value="qrCode">CÓDIGO QR</option><option value="serial">NUMERO UNICO (UID)</option><option value="footer">LOTE Y CADUCIDAD</option><option value="logo">IMAGEN / LOGO</option></select></div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 mb-1 block">SELECCIONAR OBJETO</label>
+                                <select id="object-selector" onchange="selectElement(this.value)" class="w-full p-2 border-2 rounded font-bold text-sm bg-slate-50 uppercase">
+                                    <option value="">-- NINGUNO --</option>
+                                    <option value="productName">NOMBRE PRODUCTO</option>
+                                    <option value="qrCode">CÓDIGO QR</option>
+                                    <option value="serial">NUMERO UNICO (UID)</option>
+                                    <option value="footer">LOTE Y CADUCIDAD</option>
+                                    <option value="logo">IMAGEN / LOGO</option>
+                                </select>
+                            </div>
+
                             <hr class="border-slate-100">
+
+                            <!-- Propiedades Dinámicas -->
                             <div id="element-properties" class="hidden space-y-4">
-                                <div class="flex justify-between items-center bg-blue-50 p-2 rounded"><span class="text-xs font-black text-blue-800 uppercase" id="sel-el-name">ELEMENTO</span><button onclick="centerElement()" class="text-xs bg-white border px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1" title="Centrar Horizontalmente"><i data-lucide="align-center-horizontal" class="w-3 h-3"></i> Centrar</button></div>
-                                <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold text-slate-400">POS X</label><input type="number" id="prop-x" onchange="updateSelectedProp('x', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div><div><label class="text-[10px] font-bold text-slate-400">POS Y</label><input type="number" id="prop-y" onchange="updateSelectedProp('y', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div></div>
-                                <div><label class="text-[10px] font-bold text-slate-400">TAMAÑO (Escala)</label><input type="range" id="prop-size" min="1" max="20" step="1" oninput="updateSelectedProp('size', this.value)" class="w-full accent-blue-600"><div class="flex justify-between text-[10px] text-slate-400"><span>1x</span><span id="val-size" class="font-bold text-black">1</span><span>20x</span></div></div>
-                                <div id="prop-width-container"><label class="text-[10px] font-bold text-slate-400">ANCHO CAJA (0 = Auto)</label><input type="number" id="prop-width" onchange="updateSelectedProp('width', this.value)" class="w-full p-2 border rounded text-xs font-mono" placeholder="Ej. 200"></div>
+                                <div class="flex justify-between items-center bg-blue-50 p-2 rounded">
+                                    <span class="text-xs font-black text-blue-800 uppercase" id="sel-el-name">ELEMENTO</span>
+                                    <button onclick="centerElement()" class="text-xs bg-white border px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1" title="Centrar Horizontalmente">
+                                        <i data-lucide="align-center-horizontal" class="w-3 h-3"></i> Centrar
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div><label class="text-[10px] font-bold text-slate-400">POS X</label><input type="number" id="prop-x" onchange="updateSelectedProp('x', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div>
+                                    <div><label class="text-[10px] font-bold text-slate-400">POS Y</label><input type="number" id="prop-y" onchange="updateSelectedProp('y', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400">TAMAÑO (Escala)</label>
+                                    <input type="range" id="prop-size" min="1" max="20" step="1" oninput="updateSelectedProp('size', this.value)" class="w-full accent-blue-600">
+                                    <div class="flex justify-between text-[10px] text-slate-400"><span>1x</span><span id="val-size" class="font-bold text-black">1</span><span>20x</span></div>
+                                </div>
+                                <div id="prop-width-container">
+                                    <label class="text-[10px] font-bold text-slate-400">ANCHO CAJA (0 = Auto)</label>
+                                    <input type="number" id="prop-width" onchange="updateSelectedProp('width', this.value)" class="w-full p-2 border rounded text-xs font-mono" placeholder="Ej. 200">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">ROTACIÓN</label>
+                                    <div class="flex gap-1">
+                                        <button onclick="updateSelectedProp('rotation', 0)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">0°</button>
+                                        <button onclick="updateSelectedProp('rotation', 90)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">90°</button>
+                                        <button onclick="updateSelectedProp('rotation', 180)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">180°</button>
+                                        <button onclick="updateSelectedProp('rotation', 270)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">270°</button>
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-400 mb-1 block">ALINEACIÓN TEXTO</label>
                                     <div class="flex gap-1">
@@ -215,39 +314,75 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="no-selection" class="text-center py-10 text-slate-400 text-xs italic border-2 border-dashed rounded bg-slate-50">Selecciona un objeto de la lista o haz clic en el lienzo</div>
-                            <div class="border-t pt-4"><div class="flex justify-between items-center mb-2"><label class="flex items-center gap-2 text-xs font-bold cursor-pointer"><input type="checkbox" id="toggle-logo" onchange="toggleLogo(this.checked)" class="accent-blue-600"> ACTIVAR LOGO</label></div><div id="logo-uploader" class="hidden space-y-2"><input type="file" id="logo-file" accept="image/png, image/jpeg" class="hidden" onchange="handleLogoUpload(this)"><button onclick="document.getElementById('logo-file').click()" class="w-full border border-dashed border-blue-400 bg-blue-50 text-blue-600 py-2 rounded text-xs font-bold hover:bg-blue-100">CARGAR IMAGEN (MAX 500KB)</button></div></div>
+                            
+                            <div id="no-selection" class="text-center py-10 text-slate-400 text-xs italic border-2 border-dashed rounded bg-slate-50">
+                                Selecciona un objeto de la lista o haz clic en el lienzo
+                            </div>
+                            
+                            <div class="border-t pt-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                                        <input type="checkbox" id="toggle-logo" onchange="toggleLogo(this.checked)" class="accent-blue-600"> 
+                                        ACTIVAR LOGO
+                                    </label>
+                                </div>
+                                <div id="logo-uploader" class="hidden space-y-2">
+                                    <input type="file" id="logo-file" accept="image/png, image/jpeg" class="hidden" onchange="handleLogoUpload(this)">
+                                    <button onclick="document.getElementById('logo-file').click()" class="w-full border border-dashed border-blue-400 bg-blue-50 text-blue-600 py-2 rounded text-xs font-bold hover:bg-blue-100">
+                                        CARGAR IMAGEN (MAX 500KB)
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Lienzo -->
                     <div class="flex-1 bg-slate-200 overflow-auto flex items-center justify-center p-8 relative">
                         <div id="designer-canvas" class="bg-white shadow-2xl relative transition-all cursor-crosshair overflow-hidden canvas-bg border border-slate-300"></div>
-                        <div class="absolute bottom-4 right-4 bg-white/80 p-2 rounded text-[10px] font-mono text-slate-500 shadow pointer-events-none">X: <span id="debug-x">0</span> Y: <span id="debug-y">0</span></div>
+                        <div class="absolute bottom-4 right-4 bg-white/80 p-2 rounded text-[10px] font-mono text-slate-500 shadow pointer-events-none">
+                            X: <span id="debug-x">0</span> Y: <span id="debug-y">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- VISTA HISTORIAL -->
+            <!-- VISTA: HISTORIAL -->
             <div id="view-history" class="hidden bg-white rounded-xl shadow-sm overflow-hidden p-4">
                 <h3 class="font-bold text-slate-700 mb-4">HISTORIAL DE IMPRESIONES</h3>
-                <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto"><div class="text-center text-slate-400 text-sm">Cargando...</div></div>
+                <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div class="text-center text-slate-400 text-sm">Cargando...</div>
+                </div>
             </div>
 
-            <!-- VISTA AJUSTES -->
+            <!-- VISTA: AJUSTES -->
             <div id="view-settings" class="hidden space-y-6">
+                <!-- Diseñador -->
                 <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-600 flex justify-between items-center">
-                    <div><h2 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i data-lucide="layout-template" class="w-5 h-5"></i> DISEÑO DE ETIQUETA</h2><p class="text-xs text-slate-500 mt-1">Modifica la posición de los elementos.</p></div>
-                    <button onclick="switchTab('designer')" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition-transform active:scale-95 flex items-center gap-2"><i data-lucide="edit" class="w-4 h-4"></i> ABRIR DISEÑADOR</button>
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i data-lucide="layout-template" class="w-5 h-5"></i> DISEÑO DE ETIQUETA
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Modifica la posición de los elementos.</p>
+                    </div>
+                    <button onclick="switchTab('designer')" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition-transform active:scale-95 flex items-center gap-2">
+                        <i data-lucide="edit" class="w-4 h-4"></i> ABRIR DISEÑADOR
+                    </button>
                 </div>
-                
+
+                <!-- Conexión -->
                 <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-yellow-500">
-                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2"><i data-lucide="wifi" class="w-5 h-5"></i> CONEXIÓN IMPRESORA</h2>
+                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                        <i data-lucide="wifi" class="w-5 h-5"></i> CONEXIÓN IMPRESORA
+                    </h2>
                     
                     <!-- BLUETOOTH CONNECT -->
                     <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <h3 class="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2"><i data-lucide="bluetooth" class="w-4 h-4"></i> CONEXIÓN DIRECTA (BLUETOOTH)</h3>
+                        <h3 class="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                            <i data-lucide="bluetooth" class="w-4 h-4"></i> CONEXIÓN DIRECTA (BLUETOOTH)
+                        </h3>
                         <p class="text-[10px] text-blue-700 mb-3">Úsalo si no hay WiFi o para configurar la red. (Requiere Chrome/Edge).</p>
                         <button onclick="connectBLE()" id="btn-ble-connect" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-xs hover:bg-blue-700 shadow flex justify-center items-center gap-2">
-                            <i data-lucide="search" class="w-3 h-3"></i> BUSCAR DISPOSITIVOS (SELECCIONA MANUALMENTE)
+                            <i data-lucide="search" class="w-3 h-3"></i> BUSCAR DISPOSITIVOS (MOSTRAR TODOS)
                         </button>
                         <div id="ble-status" class="text-[10px] font-bold text-slate-400 mt-1 text-center">Desconectado</div>
                     </div>
@@ -255,12 +390,18 @@
                     <!-- WIFI CONFIG -->
                     <div class="space-y-4">
                         <div class="flex gap-2 items-end">
-                            <div class="flex-1"><label class="text-xs font-bold text-slate-500">IP WIFI (ESP32)</label><input type="text" id="esp-ip" value="192.168.1.50" class="w-full p-2 border rounded font-mono font-bold bg-slate-50"></div>
+                            <div class="flex-1">
+                                <label class="text-xs font-bold text-slate-500">IP WIFI (ESP32)</label>
+                                <input type="text" id="esp-ip" value="192.168.1.50" class="w-full p-2 border rounded font-mono font-bold bg-slate-50">
+                            </div>
                             <button onclick="testConnection()" class="bg-slate-800 text-white p-2 rounded hover:bg-slate-700 h-10 font-bold text-xs">PROBAR WIFI</button>
                         </div>
                         <div class="border-t pt-4">
                             <h3 class="text-sm font-bold text-slate-700 mb-2">ACTUALIZAR WIFI DEL DISPOSITIVO</h3>
-                            <div class="grid grid-cols-2 gap-2"><input type="text" id="new-wifi-ssid" placeholder="Nombre WiFi Real" class="p-2 border rounded text-xs"><input type="text" id="new-wifi-pass" placeholder="Contraseña WiFi" class="p-2 border rounded text-xs"></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="new-wifi-ssid" placeholder="Nombre WiFi Real" class="p-2 border rounded text-xs">
+                                <input type="text" id="new-wifi-pass" placeholder="Contraseña WiFi" class="p-2 border rounded text-xs">
+                            </div>
                             <div class="flex gap-2 mt-2">
                                 <button onclick="updateEspWifi('http')" class="flex-1 bg-yellow-500 text-slate-900 py-2 rounded font-bold text-xs hover:bg-yellow-400">ENVIAR POR WIFI (IP)</button>
                                 <button onclick="updateEspWifi('ble')" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-xs hover:bg-blue-500">ENVIAR POR BLUETOOTH</button>
@@ -274,20 +415,23 @@
                     <button onclick="importProducts()" class="bg-green-600 text-white w-full py-2 rounded font-bold text-xs hover:bg-green-700">PROCESAR LISTA</button>
                 </div>
             </div>
+
         </main>
     </div>
 
-    <!-- LOGICA -->
+    <!-- JAVASCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, setDoc, doc, getDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = { apiKey: "AIzaSyBFsPNR_MlgYp00Wu3UQTtYmrGc9P2B0JM", authDomain: "forrajeslabel.firebaseapp.com", projectId: "forrajeslabel", storageBucket: "forrajeslabel.firebasestorage.app", messagingSenderId: "285841575830", appId: "1:285841575830:web:79c6ac47fe8c44569297b7", measurementId: "G-HHV6KS7XXE" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // ESTADO GLOBAL
         let currentUser = null, userData = null, products = [], selectedProduct = null;
         let currentSizeId = '4x6';
         let layouts = { 
@@ -323,11 +467,13 @@
         // --- BLE LOGIC ---
         window.connectBLE = async () => {
             try {
-                showNotify("Buscando... Selecciona 'FORRAJES-ESP32'", "warning");
+                showNotify("Buscando... Selecciona el dispositivo", "warning");
+                // CHANGE: acceptAllDevices: true permite ver todo y elegir manualmente
                 bleDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true, // <--- BUSCAR TODO (PARA QUE NO FILTRE)
+                    acceptAllDevices: true, 
                     optionalServices: [BLE_SERVICE_UUID]
                 });
+                
                 bleDevice.addEventListener('gattserverdisconnected', () => {
                     document.getElementById('ble-status').innerText = "Desconectado";
                     document.getElementById('status-ble').classList.replace('bg-green-500', 'bg-slate-600');
@@ -347,13 +493,20 @@
             }
         };
 
+        // Enviar datos en trozos pequeños para no saturar el BLE (Solución para "Paquetitos")
         async function sendViaBLE(dataObj) {
             if (!bleCharWrite) return false;
             try {
                 const json = JSON.stringify(dataObj);
+                const chunkSize = 100; // 100 bytes por paquete
                 const encoder = new TextEncoder();
-                // Chunking simple (si es necesario, aunque BLE writeValue suele manejarlo en chrome moderno)
-                await bleCharWrite.writeValue(encoder.encode(json));
+                
+                for (let i = 0; i < json.length; i += chunkSize) {
+                    const chunk = json.substring(i, i + chunkSize);
+                    await bleCharWrite.writeValue(encoder.encode(chunk));
+                    // Pausa de 50ms entre paquetes para que el ESP32 procese
+                    await new Promise(r => setTimeout(r, 50)); 
+                }
                 return true;
             } catch (e) {
                 console.error(e);
@@ -367,7 +520,7 @@
             const pass = document.getElementById('new-wifi-pass').value; 
             if(!ssid || !pass) return showNotify("Ingresa datos WiFi", "error"); 
             
-            const payload = { ssid, pass, type: "wifi_config" }; // type flag
+            const payload = { ssid, pass, type: "wifi_config" }; 
 
             if (method === 'ble') {
                 if(!bleCharWrite) return showNotify("Primero conecta el Bluetooth", "error");
@@ -383,7 +536,7 @@
             }
         };
 
-        // --- IMPRESIÓN ---
+        // --- IMPRESIÓN / TIRAJE ---
         window.openPrintModal = () => {
             if (!selectedProduct) return showNotify("Selecciona un producto", "error");
             const start = parseInt(document.getElementById('serial-start').value);
@@ -391,9 +544,9 @@
             document.getElementById('modal-range').innerText = `${start} al ${end}`;
             document.getElementById('modal-qty').innerText = (end - start) + 1;
             
-            // Determinar método
+            // Determinar método visual
             let method = "WiFi (IP)";
-            if (bleCharWrite && bleDevice.gatt.connected) method = "BLUETOOTH";
+            if (bleCharWrite && bleDevice && bleDevice.gatt.connected) method = "BLUETOOTH (Prioridad)";
             document.getElementById('send-method-display').innerText = "Envío vía: " + method;
             
             document.getElementById('print-modal').classList.remove('hidden');
@@ -426,13 +579,13 @@
 
             let success = false;
             
-            // INTENTO 1: BLUETOOTH (Si está conectado, es prioridad)
-            if (bleCharWrite && bleDevice.gatt.connected) {
+            // 1. INTENTO BLUETOOTH
+            if (bleCharWrite && bleDevice && bleDevice.gatt.connected) {
                 success = await sendViaBLE(payload);
                 if (success) showNotify("¡Tiraje enviado por BLUETOOTH!", "success");
             }
 
-            // INTENTO 2: WIFI (Si falló BT o no estaba conectado)
+            // 2. INTENTO WIFI (Si falló BT)
             if (!success) {
                 try {
                     const controller = new AbortController(); setTimeout(() => controller.abort(), 3000);
@@ -452,8 +605,7 @@
             } catch (e) {}
         }
 
-        // --- EXISTING LOGIC (Layouts, Drag, Auth, etc) ---
-        // (Se mantiene igual que la versión anterior, solo integrando las nuevas funciones arriba)
+        // --- EXISTING LOGIC ---
         async function loadLayoutsFromDB() { try { const snap = await getDoc(doc(db, "config", "layouts")); if (snap.exists()) { const loaded = snap.data(); if(loaded['4x6']) layouts['4x6'] = { ...layouts['4x6'], ...loaded['4x6'] }; if(loaded['2x2']) layouts['2x2'] = { ...layouts['2x2'], ...loaded['2x2'] }; } } catch (e) {} changeEditorSize(currentSizeId); renderProductionPreview(); }
         window.saveLayoutToDB = async () => { try { await setDoc(doc(db, "config", "layouts"), layouts); showNotify("Diseño guardado exitosamente en la base de datos", "success"); renderProductionPreview(); } catch (e) { showNotify("Error: " + e.message, "error"); } };
         window.changeEditorSize = (sizeId) => { currentSizeId = sizeId; const is4x6 = currentSizeId === '4x6'; document.getElementById('edit-size-4x6').className = is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('edit-size-2x2').className = !is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('prod-size-4x6').className = document.getElementById('edit-size-4x6').className; document.getElementById('prod-size-2x2').className = document.getElementById('edit-size-2x2').className; selectedElementKey = null; updatePropertiesPanel(); renderDesignerCanvas(); renderProductionPreview(); };
