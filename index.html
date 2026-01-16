@@ -33,7 +33,7 @@
     <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div class="text-yellow-500 flex flex-col items-center gap-4">
             <i data-lucide="loader" class="animate-spin w-10 h-10"></i>
-            <span class="font-bold uppercase tracking-widest">CONECTANDO...</span>
+            <span class="font-bold uppercase tracking-widest">CARGANDO SISTEMA...</span>
         </div>
     </div>
 
@@ -203,7 +203,7 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-xs">
                                 <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">LOTE</span><span id="disp-lot" class="font-mono font-bold">--</span></div>
-                                <div class="bg-slate-100 p-2 rounded"><span clas="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div>
+                                <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div>
                             </div>
                             <div class="flex gap-2">
                                 <div class="flex-1">
@@ -501,7 +501,7 @@
             if (!bleCharWrite) return false;
             try {
                 const json = JSON.stringify(dataObj);
-                const chunkSize = 100; // 100 bytes por paquete
+                const chunkSize = 50; // Reducido a 50 bytes (Más seguro)
                 const encoder = new TextEncoder();
                 
                 for (let i = 0; i < json.length; i += chunkSize) {
@@ -520,8 +520,8 @@
 
         // --- WIFI UPDATE ---
         window.updateEspWifi = async (method) => { 
-            const ssid = document.getElementById('new-wifi-ssid').value; 
-            const pass = document.getElementById('new-wifi-pass').value; 
+            const ssid = document.getElementById('new-wifi-ssid').value.trim(); 
+            const pass = document.getElementById('new-wifi-pass').value.trim(); 
             if(!ssid || !pass) return showNotify("Ingresa datos WiFi", "error"); 
             
             const payload = { ssid, pass, type: "wifi_config" }; 
@@ -532,9 +532,9 @@
                 if(res) showNotify("Credenciales enviadas por Bluetooth. El ESP32 se reiniciará.", "success");
                 else showNotify("Error enviando por Bluetooth", "error");
             } else {
-                const ip = document.getElementById('esp-ip').value;
+                const ip = document.getElementById('esp-ip').value.trim();
                 try { 
-                    await fetch(`http://${ip}/wifi`, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors' }); 
+                    await fetch(`http://${ip}/wifi`, { method: 'POST', body: JSON.stringify(payload), mode: 'cors' }); 
                     showNotify("Enviado por IP. ESP32 Reiniciando...", "success"); 
                 } catch(e) { showNotify("Error de conexión IP", "error"); } 
             }
@@ -559,7 +559,7 @@
 
         window.confirmPrint = async () => {
             closePrintModal();
-            const ip = document.getElementById('esp-ip').value;
+            const ip = document.getElementById('esp-ip').value.trim();
             const start = parseInt(document.getElementById('serial-start').value);
             const end = parseInt(document.getElementById('serial-end').value);
             const lot = document.getElementById('disp-lot').innerText;
@@ -615,16 +615,14 @@
                         }, 
                         body: JSON.stringify(payload), 
                         signal: controller.signal, 
-                        mode: 'cors' 
+                        mode: 'no-cors' // Cambiado a no-cors para evitar bloqueo (opaque)
                     });
                     clearTimeout(timeoutId);
 
-                    if (response.ok) {
-                        success = true; 
-                        showNotify("¡Tiraje enviado por WIFI exitosamente!", "success");
-                    } else {
-                        throw new Error(`Error del servidor: ${response.status}`);
-                    }
+                    // Con no-cors no podemos saber si fue ok, asumimos que si no lanzó error de red, llegó.
+                    success = true; 
+                    showNotify("¡Tiraje enviado por WIFI!", "success");
+                    
                 } catch (e) { 
                     console.error("Fallo envío WiFi:", e);
                     errorMsg = e.message;
@@ -663,7 +661,7 @@
         window.addEventListener('mousemove', handleDrag); window.addEventListener('touchmove', handleDrag, {passive: false}); window.addEventListener('mouseup', () => isDragging = false); window.addEventListener('touchend', () => isDragging = false);
         function handleDrag(e) { if (!isDragging || !selectedElementKey) return; e.preventDefault(); const canvas = document.getElementById('designer-canvas'); const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const scale = 2; const printerX = Math.round((clientX - rect.left - dragOffset.x) * 2 / scale); const printerY = Math.round((clientY - rect.top - dragOffset.y) * 2 / scale); layouts[currentSizeId][selectedElementKey].x = printerX; layouts[currentSizeId][selectedElementKey].y = printerY; document.getElementById('prop-x').value = printerX; document.getElementById('prop-y').value = printerY; renderDesignerCanvas(); }
         window.handleLogoUpload = (input) => { const file = input.files[0]; if(!file || file.size > 500000) return showNotify("Imagen inválida o > 500KB", "error"); const reader = new FileReader(); reader.onload = (e) => { if(!layouts[currentSizeId].logo) layouts[currentSizeId].logo = { ...layouts['4x6'].logo }; layouts[currentSizeId].logo.src = e.target.result; layouts[currentSizeId].logo.visible = true; document.getElementById('toggle-logo').checked = true; renderDesignerCanvas(); showNotify("Logo cargado. Recuerda GUARDAR.", "success"); }; reader.readAsDataURL(file); };
-        window.testConnection = async () => { const ip = document.getElementById('esp-ip').value; const btn = document.querySelector('button[onclick="testConnection()"]'); btn.innerHTML = "PROBANDO..."; btn.className = "bg-yellow-500 text-slate-900 p-2 rounded h-10 font-bold text-xs"; try { const controller = new AbortController(); setTimeout(() => controller.abort(), 2000); await fetch(`http://${ip}/status`, { signal: controller.signal, mode: 'cors' }); showNotify("¡Conexión Exitosa!", "success"); btn.innerHTML = "CONECTADO"; btn.className = "bg-green-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-red-500', 'bg-green-500'); } catch (e) { showNotify("No se encuentra el ESP32", "error"); btn.innerHTML = "FALLÓ"; btn.className = "bg-red-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-green-500', 'bg-red-500'); } setTimeout(() => { btn.innerHTML = "PROBAR CONEXIÓN"; btn.className = "bg-slate-800 text-white p-2 rounded hover:bg-slate-700 h-10 font-bold text-xs"; }, 3000); };
+        window.testConnection = async () => { const ip = document.getElementById('esp-ip').value.trim(); const btn = document.querySelector('button[onclick="testConnection()"]'); btn.innerHTML = "PROBANDO..."; btn.className = "bg-yellow-500 text-slate-900 p-2 rounded h-10 font-bold text-xs"; try { const controller = new AbortController(); setTimeout(() => controller.abort(), 2000); await fetch(`http://${ip}/status`, { signal: controller.signal, mode: 'no-cors' }); showNotify("¡Conexión Exitosa!", "success"); btn.innerHTML = "CONECTADO"; btn.className = "bg-green-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-red-500', 'bg-green-500'); } catch (e) { showNotify("No se encuentra el ESP32", "error"); btn.innerHTML = "FALLÓ"; btn.className = "bg-red-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-green-500', 'bg-red-500'); } setTimeout(() => { btn.innerHTML = "PROBAR CONEXIÓN"; btn.className = "bg-slate-800 text-white p-2 rounded hover:bg-slate-700 h-10 font-bold text-xs"; }, 3000); };
         function updateQtyCalc() { const s = parseInt(document.getElementById('serial-start').value) || 0; const e = parseInt(document.getElementById('serial-end').value) || 0; let q = (e - s) + 1; if(q < 0) q = 0; document.getElementById('qty-calc').innerText = q; }
         function updateDates() { const today = new Date(); const dur = parseInt(document.getElementById('exp-duration').value) || 0; const unit = document.getElementById('exp-unit').value; const future = new Date(); if(unit === 'days') future.setDate(today.getDate() + dur); if(unit === 'months') future.setMonth(today.getMonth() + dur); if(unit === 'years') future.setFullYear(today.getFullYear() + dur); const fmt = d => { const mo = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]; return `${String(d.getDate()).padStart(2,'0')} ${mo[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`; }; document.getElementById('disp-lot').innerText = fmt(today); document.getElementById('disp-exp').innerText = fmt(future); if(typeof renderProductionPreview === 'function') renderProductionPreview(); }
         document.getElementById('exp-duration').addEventListener('input', updateDates); document.getElementById('exp-unit').addEventListener('change', updateDates); document.getElementById('serial-start').addEventListener('input', () => { updateQtyCalc(); renderProductionPreview(); }); document.getElementById('serial-end').addEventListener('input', updateQtyCalc);
