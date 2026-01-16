@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FORRAJES LABEL</title>
+    <title>FORRAJES LABEL v01</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,7 +33,7 @@
     <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div class="text-yellow-500 flex flex-col items-center gap-4">
             <i data-lucide="loader" class="animate-spin w-10 h-10"></i>
-            <span class="font-bold uppercase tracking-widest">CARGANDO SISTEMA...</span>
+            <span class="font-bold uppercase tracking-widest">CONECTANDO...</span>
         </div>
     </div>
 
@@ -67,7 +67,9 @@
             
             <!-- Header Dinámico (Cambia de color según modo) -->
             <div class="bg-yellow-500 p-6 text-center transition-colors duration-300" id="auth-header">
-                <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">FORRAJES LABEL</h1>
+                <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter flex items-center justify-center gap-2">
+                    FORRAJES LABEL <span class="bg-slate-900 text-yellow-500 text-[10px] px-1 rounded">v01</span>
+                </h1>
                 <p class="text-slate-900 font-bold opacity-75" id="auth-subtitle">INICIAR SESIÓN</p>
             </div>
 
@@ -201,7 +203,7 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-xs">
                                 <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">LOTE</span><span id="disp-lot" class="font-mono font-bold">--</span></div>
-                                <div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div>
+                                <div class="bg-slate-100 p-2 rounded"><span clas="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div>
                             </div>
                             <div class="flex gap-2">
                                 <div class="flex-1">
@@ -499,7 +501,7 @@
             if (!bleCharWrite) return false;
             try {
                 const json = JSON.stringify(dataObj);
-                const chunkSize = 50; // Reducido a 50 bytes para mayor seguridad
+                const chunkSize = 100; // 100 bytes por paquete
                 const encoder = new TextEncoder();
                 
                 for (let i = 0; i < json.length; i += chunkSize) {
@@ -580,26 +582,60 @@
             };
 
             let success = false;
-            
+            let errorMsg = "";
+
             // 1. INTENTO BLUETOOTH
             if (bleCharWrite && bleDevice && bleDevice.gatt.connected) {
                 console.log("Intentando envío por Bluetooth...");
                 success = await sendViaBLE(payload);
-                if (success) showNotify("¡Tiraje enviado por BLUETOOTH!", "success");
-                else console.error("Fallo envío Bluetooth");
+                if (success) {
+                    showNotify("¡Tiraje enviado por BLUETOOTH!", "success");
+                } else {
+                    console.error("Fallo envío Bluetooth");
+                }
             }
 
             // 2. INTENTO WIFI (Si falló BT o no estaba conectado)
             if (!success) {
-                console.log("Intentando envío por WiFi...");
+                console.log(`Intentando enviar a http://${ip}/configure`);
+                // Check if IP looks valid
+                if (!ip || ip.length < 7) {
+                     showNotify("Error: IP de impresora no válida", "error");
+                     return;
+                }
+
                 try {
-                    const controller = new AbortController(); setTimeout(() => controller.abort(), 3000);
-                    await fetch(`http://${ip}/configure`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload), signal: controller.signal, mode: 'cors' });
-                    success = true; showNotify("¡Tiraje enviado por WIFI!", "success");
-                } catch (e) { console.error("Fallo envío WiFi:", e); }
+                    const controller = new AbortController(); 
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+                    
+                    const response = await fetch(`http://${ip}/configure`, { 
+                        method: 'POST', 
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }, 
+                        body: JSON.stringify(payload), 
+                        signal: controller.signal, 
+                        mode: 'cors' 
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        success = true; 
+                        showNotify("¡Tiraje enviado por WIFI exitosamente!", "success");
+                    } else {
+                        throw new Error(`Error del servidor: ${response.status}`);
+                    }
+                } catch (e) { 
+                    console.error("Fallo envío WiFi:", e);
+                    errorMsg = e.message;
+                    if (e.name === 'AbortError') errorMsg = "Tiempo de espera agotado (Timeout)";
+                    if (e.message.includes('Failed to fetch')) errorMsg = "No se pudo conectar a la IP (Red o Bloqueo)";
+                }
             }
 
-            if (!success) showNotify("⚠️ FALLÓ EL ENVÍO. Conecta Bluetooth o revisa la IP.", "error");
+            if (!success) {
+                showNotify(`⚠️ FALLO DE ENVÍO: ${errorMsg}`, "error");
+            }
 
             try {
                 await addDoc(collection(db, "print_history"), {
