@@ -3,37 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FORRAJES LABEL v04</title>
+    <title>FORRAJES LABEL v05 (Fix)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .active-tab { background-color: #0f172a; color: #fbbf24; }
         .inactive-tab { color: #64748b; background-color: white; }
         .draggable { cursor: move; touch-action: none; position: absolute; user-select: none; }
-        .selected { outline: 2px dashed #3b82f6; background: rgba(59,130,246,0.1); z-index: 10; }
         .canvas-bg { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 10px 10px; }
+        .selected-element { outline: 2px dashed #3b82f6; background: rgba(59,130,246,0.1); z-index: 10; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans pb-20 select-none">
+<body class="bg-slate-100 min-h-screen pb-20 font-sans select-none">
 
-    <!-- LOGIN OVERLAY -->
-    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden">
+    <!-- PANTALLA DE CARGA / ERROR -->
+    <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 transition-opacity duration-500">
+        <div class="text-yellow-500 flex flex-col items-center gap-4 text-center px-4">
+            <i data-lucide="loader" class="animate-spin w-10 h-10" id="loader-icon"></i>
+            <span class="font-bold uppercase tracking-widest" id="loader-text">INICIANDO SISTEMA...</span>
+            <div id="error-trace" class="hidden text-red-400 text-xs font-mono bg-black/50 p-2 rounded mt-4 max-w-sm text-left overflow-auto"></div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMACION -->
+    <div id="print-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border-t-4 border-yellow-500 animate-in fade-in zoom-in duration-200">
+            <h3 class="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
+                <i data-lucide="cloud-upload" class="w-5 h-5 text-yellow-600"></i> SUBIR TIRAJE
+            </h3>
+            <p class="text-sm text-slate-600 mb-4">
+                Se subirá la orden a la nube. La impresora la descargará automáticamente.<br>
+                Rango: <span class="font-bold text-slate-900" id="modal-range">--</span>
+            </p>
+            <button onclick="confirmPrint()" class="w-full bg-slate-900 text-yellow-500 py-4 rounded-lg font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
+                SUBIR A LA NUBE
+            </button>
+            <button onclick="closePrintModal()" class="mt-4 text-xs text-slate-400 font-bold hover:text-red-500 w-full text-center">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-40 hidden">
+        <div class="bg-white max-w-md w-full rounded-xl shadow-2xl overflow-hidden border-4 border-yellow-500 mx-4 fade-in">
             <div class="bg-yellow-500 p-6 text-center">
-                <h1 class="text-2xl font-black text-slate-900">FORRAJES LABEL</h1>
-                <p class="text-sm font-bold opacity-80">Acceso al Sistema v04</p>
+                <h1 class="text-3xl font-black text-slate-900">FORRAJES LABEL</h1>
+                <p class="text-sm font-bold opacity-80">Acceso Cloud</p>
             </div>
-            <form id="login-form" class="p-6 space-y-4">
-                <div id="login-error" class="hidden bg-red-100 text-red-600 p-2 rounded text-xs font-bold text-center">Usuario o contraseña incorrectos</div>
-                
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500">USUARIO</label>
-                    <input type="text" id="user-input" class="w-full p-3 border-2 rounded-lg font-bold uppercase" placeholder="EJ. OSCAR">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500">CONTRASEÑA</label>
-                    <input type="password" id="pass-input" class="w-full p-3 border-2 rounded-lg font-bold">
-                </div>
+            <form id="auth-form" class="p-6 space-y-4">
+                <div id="login-error" class="hidden bg-red-100 text-red-600 p-2 rounded text-xs font-bold text-center">Datos incorrectos</div>
+                <input type="text" id="user-input" class="w-full p-3 border-2 rounded-lg font-bold uppercase" placeholder="USUARIO">
+                <input type="password" id="pass-input" class="w-full p-3 border-2 rounded-lg font-bold" placeholder="CONTRASEÑA">
                 <button type="submit" class="w-full bg-slate-900 text-yellow-500 py-3 rounded-lg font-black shadow-lg">ENTRAR</button>
             </form>
         </div>
@@ -45,529 +66,357 @@
             <div class="font-black text-yellow-500 leading-none">FORRAJES</div>
             <div class="text-[10px] text-slate-400 font-bold" id="user-display">--</div>
         </div>
-        
-        <!-- SELECTOR DE MODO DE CONEXIÓN -->
-        <select id="conn-mode" onchange="changeConnMode(this.value)" class="bg-slate-800 text-white text-xs font-bold p-2 rounded border border-slate-600 outline-none">
-            <option value="wifi">📡 MODO WIFI (IP)</option>
-            <option value="ble">🔵 MODO BLUETOOTH</option>
-        </select>
+        <div class="flex items-center gap-2">
+            <!-- Estado de la impresora en la nube -->
+            <div class="flex items-center bg-slate-800 px-2 py-1 rounded text-[10px] font-bold">
+                <span class="mr-1 text-slate-400">IMPRESORA:</span>
+                <span id="cloud-status" class="text-yellow-500">BUSCANDO...</span>
+            </div>
+            <button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600"><i data-lucide="log-out" class="w-4"></i></button>
+        </div>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="max-w-4xl mx-auto p-3 space-y-4">
-
-        <!-- NAVEGACION -->
+        <!-- TABS -->
         <div class="flex gap-2 bg-white p-1 rounded-lg shadow">
             <button onclick="nav('prod')" id="nav-prod" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 active-tab"><i data-lucide="printer" class="w-4"></i> PROD</button>
             <button onclick="nav('design')" id="nav-design" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab"><i data-lucide="edit-3" class="w-4"></i> DISEÑO</button>
-            <button onclick="nav('config')" id="nav-config" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab"><i data-lucide="settings" class="w-4"></i> CONFIG</button>
+            <button onclick="nav('settings')" id="nav-settings" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab"><i data-lucide="settings" class="w-4"></i> AJUSTES</button>
         </div>
 
-        <!-- VISTA: PRODUCCIÓN -->
-        <div id="view-prod" class="space-y-4">
-            <!-- 1. BUSCADOR -->
-            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-slate-800 relative">
-                <label class="text-[10px] font-bold text-slate-400 block mb-1">BUSCAR PRODUCTO</label>
-                <div class="relative">
-                    <i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5"></i>
-                    <input type="text" id="prod-search" class="w-full pl-10 p-2 border-2 rounded-lg font-bold text-sm uppercase outline-none focus:border-yellow-500" placeholder="NOMBRE O CÓDIGO...">
-                    <button onclick="clearSearch()" id="btn-clear" class="hidden absolute right-2 top-2 text-slate-400"><i data-lucide="x" class="w-5"></i></button>
-                </div>
-                <!-- Resultados Flotantes -->
-                <div id="search-results" class="hidden absolute top-full left-0 right-0 bg-white border-2 border-t-0 rounded-b-lg shadow-xl z-20 max-h-60 overflow-y-auto"></div>
-            </div>
-
-            <!-- 2. TIRAJE -->
-            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="font-bold text-slate-700">CONFIGURAR LOTE</h2>
-                    <div class="flex gap-1 text-[10px]">
-                        <button onclick="setLabelSize('4x6')" id="btn-size-4x6" class="px-2 py-1 border rounded bg-slate-900 text-white">4x6</button>
-                        <button onclick="setLabelSize('2x2')" id="btn-size-2x2" class="px-2 py-1 border rounded bg-white">2x2</button>
+        <!-- VISTA PROD -->
+        <div id="view-prod" class="grid md:grid-cols-2 gap-4">
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-400 block mb-1">PRODUCTO</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-5"></i>
+                        <input type="text" id="prod-search" class="w-full pl-10 p-2 border-2 rounded-lg font-bold text-sm uppercase outline-none focus:border-yellow-500" placeholder="BUSCAR...">
+                        <div id="prod-list" class="hidden absolute top-full left-0 w-full bg-white border-2 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto"></div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 text-xs mb-3">
-                    <div class="bg-slate-50 p-2 rounded">
-                        <span class="block text-[9px] text-slate-400 font-bold">LOTE (HOY)</span>
-                        <span id="txt-lot" class="font-mono font-bold text-sm">--</span>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500">
+                    <h2 class="text-xs font-bold text-slate-500 mb-2 uppercase">CONFIGURACIÓN</h2>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                         <div><label class="text-[9px] font-bold text-slate-400">INICIO</label><input type="number" id="inp-start" value="1" class="w-full p-2 border rounded font-mono font-bold text-center"></div>
+                         <div><label class="text-[9px] font-bold text-slate-400">FIN</label><input type="number" id="inp-end" value="1" class="w-full p-2 border rounded font-mono font-bold text-center bg-yellow-50"></div>
                     </div>
-                    <div class="bg-slate-50 p-2 rounded">
-                        <span class="block text-[9px] text-slate-400 font-bold">CADUCIDAD</span>
-                        <span id="txt-exp" class="font-mono font-bold text-sm text-red-600">--</span>
+                    <div class="flex gap-2">
+                        <button onclick="setLabelSize('4x6')" id="btn-size-4x6" class="flex-1 py-1 border rounded text-[10px] font-bold bg-slate-900 text-white">4x6</button>
+                        <button onclick="setLabelSize('2x2')" id="btn-size-2x2" class="flex-1 py-1 border rounded text-[10px] font-bold bg-white">2x2</button>
                     </div>
-                </div>
-
-                <div class="flex gap-2 items-end mb-4">
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400">INICIO SERIE</label>
-                        <input type="number" id="inp-start" value="1" class="w-full p-2 border rounded font-mono font-bold text-center">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400">FIN SERIE</label>
-                        <input type="number" id="inp-end" value="1" class="w-full p-2 border rounded font-mono font-bold text-center bg-yellow-50">
-                    </div>
-                </div>
-
-                <div class="text-center text-xs font-bold text-slate-500">
-                    TOTAL A IMPRIMIR: <span id="txt-total" class="text-black text-lg">1</span>
                 </div>
             </div>
 
-            <!-- 3. PREVIEW Y ACCION -->
-            <div class="bg-white p-4 rounded-xl shadow text-center">
-                <div class="text-[10px] font-bold text-slate-400 mb-2">VISTA PREVIA DE IMPRESIÓN</div>
-                <!-- Canvas de Preview Estático -->
-                <div id="preview-wrapper" class="mx-auto border-2 border-dashed border-slate-300 bg-white overflow-hidden relative mb-4">
-                    <!-- Elementos renderizados aquí -->
-                </div>
-
-                <button onclick="askPrint()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <i data-lucide="upload-cloud" class="w-6"></i> MANDAR A MÁQUINA
-                </button>
-            </div>
-        </div>
-
-        <!-- VISTA: DISEÑADOR -->
-        <div id="view-design" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold text-slate-700">EDITOR VISUAL</h2>
-                    <button onclick="saveDesign()" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">GUARDAR</button>
-                </div>
-                
-                <!-- Lienzo Editor -->
-                <div class="bg-slate-200 p-4 rounded overflow-auto flex justify-center">
-                    <div id="editor-canvas" class="bg-white shadow-xl relative border border-slate-300 canvas-bg overflow-hidden">
-                        <!-- Elementos Draggable -->
-                    </div>
-                </div>
-
-                <!-- Propiedades -->
-                <div id="editor-props" class="mt-4 p-3 bg-slate-50 rounded border hidden">
-                    <div class="flex justify-between items-center mb-2">
-                        <span id="prop-name" class="font-black text-xs uppercase text-blue-600">ELEMENTO</span>
-                        <button onclick="centerProp()" class="text-[10px] bg-white border px-2 rounded">CENTRAR</button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div>X: <input type="number" id="val-x" onchange="setProp('x', this.value)" class="w-12 p-1 border"></div>
-                        <div>Y: <input type="number" id="val-y" onchange="setProp('y', this.value)" class="w-12 p-1 border"></div>
-                        <div>TAMAÑO: <input type="number" id="val-size" onchange="setProp('size', this.value)" class="w-12 p-1 border"></div>
-                        <div>ROTAR: <button onclick="rotateProp()" class="bg-white border px-2 rounded">↻</button></div>
-                    </div>
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow text-center">
+                    <div class="text-[10px] font-bold text-slate-400 mb-2">PREVIEW</div>
+                    <div id="preview-wrapper" class="mx-auto border-2 border-dashed border-slate-300 bg-white overflow-hidden relative mb-4 h-48 flex justify-center items-center bg-slate-50"></div>
+                    <button onclick="askPrint()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                        <i data-lucide="cloud-upload" class="w-6"></i> SUBIR TIRAJE
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- VISTA: CONFIGURACION -->
-        <div id="view-config" class="hidden space-y-4">
-            
-            <!-- Panel WiFi -->
-            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-500">
-                <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i data-lucide="wifi" class="w-4"></i> CONFIGURACIÓN WIFI (IP)</h3>
-                <div class="flex gap-2">
-                    <input type="text" id="cfg-ip" value="192.168.1.50" class="flex-1 p-2 border rounded font-mono font-bold text-sm" placeholder="192.168.1.X">
-                    <button onclick="testWifi()" class="bg-slate-800 text-white px-3 rounded font-bold text-xs">PROBAR</button>
+        <!-- VISTA DISEÑO -->
+        <div id="view-design" class="hidden bg-white p-4 rounded-xl shadow space-y-4">
+            <div class="flex justify-between">
+                <h2 class="font-bold text-slate-700">EDITOR</h2>
+                <button onclick="saveDesign()" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">GUARDAR</button>
+            </div>
+            <div class="bg-slate-200 p-4 rounded overflow-auto flex justify-center">
+                <div id="editor-canvas" class="bg-white shadow-xl relative border border-slate-300 canvas-bg overflow-hidden"></div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded border text-xs grid grid-cols-2 gap-2">
+                <div><span class="font-bold">OBJETO:</span> <span id="prop-name" class="text-blue-600">Ninguno</span></div>
+                <div class="flex gap-1">
+                    <input type="number" id="val-x" class="w-12 p-1 border" placeholder="X" onchange="setProp('x',this.value)">
+                    <input type="number" id="val-y" class="w-12 p-1 border" placeholder="Y" onchange="setProp('y',this.value)">
+                    <input type="number" id="val-size" class="w-12 p-1 border" placeholder="SZ" onchange="setProp('size',this.value)">
                 </div>
-                <p class="text-[10px] text-slate-400 mt-1">Usa esta opción si el ESP32 tiene luz azul fija.</p>
             </div>
-
-            <!-- Panel Bluetooth -->
-            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-700">
-                <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i data-lucide="bluetooth" class="w-4"></i> CONFIGURACIÓN BLUETOOTH</h3>
-                <button onclick="pairBLE()" id="btn-ble" class="w-full bg-blue-100 text-blue-800 py-3 rounded font-bold text-xs flex justify-center items-center gap-2">
-                    <i data-lucide="search" class="w-4"></i> VINCULAR DISPOSITIVO
-                </button>
-                <div id="ble-status" class="text-center text-[10px] font-bold text-slate-400 mt-2">DESCONECTADO</div>
-            </div>
-
-            <!-- Importar -->
-            <div class="bg-white p-4 rounded-xl shadow">
-                <h3 class="font-bold text-sm mb-2">IMPORTAR PRODUCTOS</h3>
-                <textarea id="imp-data" class="w-full h-20 border p-2 text-xs font-mono" placeholder="CODIGO [TAB] NOMBRE"></textarea>
-                <button onclick="doImport()" class="w-full bg-green-600 text-white py-2 rounded font-bold text-xs mt-2">CARGAR A BASE DE DATOS</button>
+        </div>
+        
+        <!-- VISTA AJUSTES -->
+        <div id="view-settings" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-500">
+                <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="database" class="w-4"></i> IMPORTAR PRODUCTOS</h3>
+                <textarea id="import-text" class="w-full h-24 border p-2 text-xs mb-2 font-mono rounded" placeholder="CODIGO [TAB] NOMBRE"></textarea>
+                <button onclick="importProducts()" class="bg-green-600 text-white w-full py-2 rounded font-bold text-xs hover:bg-green-700">PROCESAR LISTA</button>
             </div>
         </div>
 
     </main>
 
-    <!-- MODAL CONFIRMACION -->
-    <div id="modal-confirm" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
-            <i data-lucide="upload-cloud" class="w-12 h-12 text-blue-500 mx-auto mb-3"></i>
-            <h2 class="text-xl font-black text-slate-800">¿ENVIAR TIRAJE?</h2>
-            <p class="text-xs text-slate-500 mb-4">Se programarán <b id="cnf-qty">0</b> etiquetas en el ESP32.</p>
-            <div class="flex gap-2">
-                <button onclick="document.getElementById('modal-confirm').classList.add('hidden')" class="flex-1 py-3 border rounded font-bold text-slate-500">CANCELAR</button>
-                <button onclick="sendPayload()" class="flex-1 py-3 bg-blue-600 text-white rounded font-bold shadow">ENVIAR</button>
-            </div>
-        </div>
-    </div>
-
     <!-- TOAST -->
-    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 hidden flex items-center gap-2">
-        <span id="toast-msg">Mensaje</span>
-    </div>
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 hidden"></div>
 
-    <!-- LOGICA JS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDoc, doc, setDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // FIREBASE CONFIG
+        // CONFIGURACIÓN (NO EDITAR)
         const firebaseConfig = { apiKey: "AIzaSyBFsPNR_MlgYp00Wu3UQTtYmrGc9P2B0JM", authDomain: "forrajeslabel.firebaseapp.com", projectId: "forrajeslabel", storageBucket: "forrajeslabel.firebasestorage.app", messagingSenderId: "285841575830", appId: "1:285841575830:web:79c6ac47fe8c44569297b7", measurementId: "G-HHV6KS7XXE" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // ESTADO
-        let state = {
-            user: null,
-            products: [],
-            selectedProd: null,
-            size: '4x6', // '4x6' or '2x2'
-            mode: 'wifi', // 'wifi' or 'ble'
-            bleDevice: null,
-            bleChar: null,
-            layouts: { 
-                '4x6': { productName: {x:30,y:30,size:3}, qrCode: {x:500,y:50,size:8}, serial: {x:30,y:240,size:4}, footer: {x:30,y:720,size:2} },
-                '2x2': { productName: {x:10,y:10,size:2}, qrCode: {x:120,y:60,size:5}, serial: {x:10,y:250,size:2}, footer: {x:10,y:350,size:1} }
-            }
-        };
-
-        // --- INICIO ---
-        window.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            auth.onAuthStateChanged(u => {
-                if(u) {
-                    state.user = u;
-                    document.getElementById('login-overlay').classList.add('hidden');
-                    document.getElementById('user-display').innerText = u.email.split('@')[0].toUpperCase();
-                    loadData();
-                }
-            });
-            updateDates();
-        });
-
-        // --- AUTH ---
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const u = document.getElementById('user-input').value.trim().toLowerCase().replace(/\s/g,'');
-            const p = document.getElementById('pass-input').value;
-            const email = `${u}@sistema.local`; // Dummy email
-            const errBox = document.getElementById('login-error');
-            
-            try {
-                await signInWithEmailAndPassword(auth, email, p);
-            } catch (err) {
-                // Si no existe, intentamos crearlo (Auto-registro implícito para simplicidad en demo)
-                try {
-                    await createUserWithEmailAndPassword(auth, email, p);
-                } catch(e2) {
-                    errBox.innerText = "Error: Usuario o contraseña incorrectos";
-                    errBox.classList.remove('hidden');
-                }
-            }
-        });
-
-        // --- DATA LOADING ---
-        function loadData() {
-            // Layouts
-            getDoc(doc(db, "config", "layouts")).then(s => {
-                if(s.exists()) state.layouts = { ...state.layouts, ...s.data() };
-                renderDesigner();
-                renderPreview();
-            });
-            // Products
-            const q = query(collection(db, "products"), orderBy("name"));
-            onSnapshot(q, s => {
-                state.products = [];
-                s.forEach(d => state.products.push({id: d.id, ...d.data()}));
-            });
-        }
-
-        // --- INTERFAZ ---
-        window.nav = (tab) => {
-            ['prod','design','config'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab";
-            });
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 active-tab";
-        };
-
-        window.changeConnMode = (mode) => {
-            state.mode = mode;
-            showToast(`Modo cambiado a: ${mode.toUpperCase()}`);
-        };
-
-        window.setLabelSize = (s) => {
-            state.size = s;
-            document.getElementById('btn-size-4x6').className = s === '4x6' ? "px-2 py-1 border rounded bg-slate-900 text-white" : "px-2 py-1 border rounded bg-white";
-            document.getElementById('btn-size-2x2').className = s === '2x2' ? "px-2 py-1 border rounded bg-slate-900 text-white" : "px-2 py-1 border rounded bg-white";
-            renderPreview();
-            renderDesigner();
-        }
-
-        // --- LOGICA PRODUCTO ---
-        const searchInput = document.getElementById('prod-search');
-        const resList = document.getElementById('search-results');
         
-        searchInput.addEventListener('input', (e) => {
-            const v = e.target.value.toUpperCase();
-            resList.innerHTML = '';
-            if(v.length > 0) {
-                const matches = state.products.filter(p => p.name.includes(v) || p.code.includes(v));
-                matches.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = "p-3 border-b hover:bg-slate-50 cursor-pointer";
-                    div.innerHTML = `<div class="font-bold text-xs">${p.name}</div><div class="text-[10px] text-slate-400">${p.code}</div>`;
-                    div.onclick = () => selectProduct(p);
-                    resList.appendChild(div);
-                });
-                resList.classList.remove('hidden');
-                document.getElementById('btn-clear').classList.remove('hidden');
-            } else {
-                resList.classList.add('hidden');
-            }
-        });
-
-        function selectProduct(p) {
-            state.selectedProd = p;
-            searchInput.value = p.name;
-            resList.classList.add('hidden');
-            renderPreview();
-        }
-
-        window.clearSearch = () => {
-            state.selectedProd = null;
-            searchInput.value = '';
-            document.getElementById('btn-clear').classList.add('hidden');
-            renderPreview();
+        // MANEJO DE ERRORES GLOBAL
+        window.onerror = function(message, source, lineno, colno, error) {
+             const loader = document.getElementById('loader-screen');
+             const errTrace = document.getElementById('error-trace');
+             const icon = document.getElementById('loader-icon');
+             const text = document.getElementById('loader-text');
+             
+             loader.classList.remove('hidden');
+             icon.classList.remove('animate-spin');
+             icon.setAttribute('data-lucide', 'alert-triangle');
+             text.innerText = "ERROR DE SISTEMA";
+             text.className = "text-red-500 font-black";
+             errTrace.classList.remove('hidden');
+             errTrace.innerText = `${message}\nLinea: ${lineno}`;
+             lucide.createIcons();
         };
 
-        // --- LOGICA DE ENVIO (CORE) ---
-        window.askPrint = () => {
-            if(!state.selectedProd) return showToast("Selecciona un producto primero", true);
-            const start = parseInt(document.getElementById('inp-start').value);
-            const end = parseInt(document.getElementById('inp-end').value);
-            document.getElementById('cnf-qty').innerText = (end - start) + 1;
-            document.getElementById('modal-confirm').classList.remove('hidden');
-        };
+        // INICIALIZACIÓN SEGURA
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
 
-        window.sendPayload = async () => {
-            document.getElementById('modal-confirm').classList.add('hidden');
-            
-            // Preparar Datos
-            const start = parseInt(document.getElementById('inp-start').value);
-            const end = parseInt(document.getElementById('inp-end').value);
-            const qty = (end - start) + 1;
-            const lot = document.getElementById('txt-lot').innerText;
-            const exp = document.getElementById('txt-exp').innerText;
-            const uid = state.user.uid.substring(0,4).toUpperCase(); // Short ID user
-            
-            // Generar Timestamp Base
-            const d = new Date();
-            const timeStr = `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-            const qrBase = `${timeStr}${uid}`;
-
-            const payload = {
-                type: "print_job",
-                productName: state.selectedProd.name,
-                lotDate: lot,
-                expDate: exp,
-                qrBase: qrBase,
-                startSerial: start,
-                endSerial: end,
-                layout: state.size === '2x2' ? 'square_2x2' : 'horizontal_4x6',
-                visualConfig: state.layouts[state.size]
+            let state = {
+                user: null, products: [], selectedProd: null, size: '4x6',
+                layouts: { 
+                    '4x6': { productName: {x:30,y:30,size:3}, qrCode: {x:500,y:50,size:8}, serial: {x:30,y:240,size:4}, footer: {x:30,y:720,size:2} },
+                    '2x2': { productName: {x:10,y:10,size:2}, qrCode: {x:120,y:60,size:5}, serial: {x:10,y:250,size:2}, footer: {x:10,y:350,size:1} }
+                }
             };
 
-            showToast("Enviando...", false);
-
-            let success = false;
-
-            if (state.mode === 'wifi') {
-                // MODO WIFI (IP)
-                const ip = document.getElementById('cfg-ip').value;
-                if(location.protocol === 'https:') {
-                    alert("ERROR: Estás en HTTPS. El navegador bloqueará la IP local. \n\nSOLUCIÓN: Descarga este archivo HTML y ábrelo en tu PC, o usa el Modo Bluetooth.");
-                    return;
-                }
-                try {
-                    await fetch(`http://${ip}/configure`, {
-                        method: 'POST',
-                        body: JSON.stringify(payload),
-                        mode: 'no-cors' // Importante para IPs locales
-                    });
-                    success = true; // Asumimos éxito si no hay error de red
-                } catch(e) { console.error(e); }
-            } else {
-                // MODO BLUETOOTH
-                if(!state.bleChar) return showToast("Bluetooth no conectado", true);
-                success = await sendBLEChunked(JSON.stringify(payload));
-            }
-
-            if(success) {
-                showToast("¡Datos Enviados!", false);
-                // Guardar Historial
-                await addDoc(collection(db, "print_history"), {
-                    product: state.selectedProd.name,
-                    qty: qty,
-                    user: state.user.email,
-                    timestamp: serverTimestamp()
-                });
-                // Avanzar serie
-                document.getElementById('inp-start').value = end + 1;
-                document.getElementById('inp-end').value = end + 1;
-                calcTotal();
-            } else {
-                showToast("Fallo el envío", true);
-            }
-        };
-
-        // --- BLUETOOTH HELPER ---
-        window.pairBLE = async () => {
-            try {
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
-                });
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-                state.bleChar = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
-                document.getElementById('ble-status').innerText = "CONECTADO: " + device.name;
-                document.getElementById('ble-status').className = "text-center text-[10px] font-bold text-green-500 mt-2";
-            } catch(e) { showToast("Error BT: " + e.message, true); }
-        };
-
-        async function sendBLEChunked(str) {
-            try {
-                const encoder = new TextEncoder();
-                const chunks = str.match(/.{1,100}/g); // 100 bytes chunks
-                for(let chunk of chunks) {
-                    await state.bleChar.writeValue(encoder.encode(chunk));
-                    await new Promise(r => setTimeout(r, 50)); // Delay
-                }
-                return true;
-            } catch(e) { return false; }
-        }
-
-        // --- WIFI HELPER ---
-        window.testWifi = async () => {
-            const ip = document.getElementById('cfg-ip').value;
-            try {
-                await fetch(`http://${ip}/status`, { signal: AbortSignal.timeout(2000), mode: 'no-cors' });
-                showToast("WiFi Responde (OK)", false);
-            } catch(e) { showToast("Sin respuesta de IP", true); }
-        };
-
-        // --- PREVIEW & DESIGNER (Simplificado) ---
-        function renderPreview() {
-            const wrap = document.getElementById('preview-wrapper');
-            const layout = state.layouts[state.size];
-            const scale = state.size === '4x6' ? 1.5 : 2.5;
-            const w = state.size === '4x6' ? 152 : 50;
-            const h = state.size === '4x6' ? 101 : 50;
-            
-            wrap.innerHTML = '';
-            wrap.style.width = (w * scale) + 'px';
-            wrap.style.height = (h * scale) + 'px';
-            
-            const div = document.createElement('div');
-            div.className = "w-full h-full bg-white relative overflow-hidden border border-black";
-            
-            Object.keys(layout).forEach(k => {
-                const item = layout[k];
-                const el = document.createElement('div');
-                el.style.position = 'absolute';
-                el.style.left = (item.x * scale / 2) + 'px'; // Factor aprox para TSPL dots
-                el.style.top = (item.y * scale / 2) + 'px';
-                el.style.fontSize = (item.size * 4 * scale / 2) + 'px';
-                el.style.fontWeight = 'bold';
+            window.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
                 
-                if(k === 'productName') el.innerText = state.selectedProd ? state.selectedProd.name : "PRODUCTO";
-                else if(k === 'qrCode') { el.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=123" style="width:${item.size*10}px">`; }
-                else if(k === 'serial') el.innerText = "0113...0001";
-                else if(k === 'footer') el.innerText = `LOT:${document.getElementById('txt-lot').innerText}`;
-                
-                div.appendChild(el);
+                // AUTH LISTENER
+                auth.onAuthStateChanged(u => {
+                    document.getElementById('loader-screen').classList.add('hidden');
+                    if(u) {
+                        state.user = u;
+                        document.getElementById('login-screen').classList.add('hidden');
+                        document.getElementById('app-screen').classList.remove('hidden');
+                        const cleanName = u.email ? u.email.split('@')[0].toUpperCase() : 'USER';
+                        document.getElementById('user-display').innerText = cleanName;
+                        initApp();
+                    } else {
+                        document.getElementById('login-screen').classList.remove('hidden');
+                    }
+                });
+
+                // EVENTOS
+                const loginForm = document.getElementById('login-form');
+                if(loginForm) loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const u = document.getElementById('user-input').value.trim().replace(/\s/g,'').toLowerCase();
+                    const p = document.getElementById('pass-input').value;
+                    const email = `${u}@sistema.local`;
+                    try { await signInWithEmailAndPassword(auth, email, p); } 
+                    catch(err) { 
+                        try { await createUserWithEmailAndPassword(auth, email, p); } 
+                        catch(e2) { document.getElementById('login-error').classList.remove('hidden'); }
+                    }
+                });
+
+                const logoutBtn = document.getElementById('logout-btn');
+                if(logoutBtn) logoutBtn.addEventListener('click', () => auth.signOut());
+
+                const prodSearch = document.getElementById('prod-search');
+                if(prodSearch) prodSearch.addEventListener('input', (e) => {
+                    const val = e.target.value.toUpperCase();
+                    const list = document.getElementById('prod-list');
+                    list.innerHTML = '';
+                    if(val.length > 0) {
+                        list.classList.remove('hidden');
+                        state.products.filter(p => p.name.includes(val)).forEach(p => {
+                            const div = document.createElement('div');
+                            div.className = "p-2 hover:bg-slate-100 cursor-pointer border-b text-xs font-bold";
+                            div.innerText = p.name;
+                            div.onclick = () => {
+                                state.selectedProd = p;
+                                document.getElementById('prod-search').value = p.name;
+                                list.classList.add('hidden');
+                                renderPreview();
+                            };
+                            list.appendChild(div);
+                        });
+                    } else { list.classList.add('hidden'); }
+                });
             });
-            wrap.appendChild(div);
-        }
 
-        // --- EDITOR (Simplificado) ---
-        let dragItem = null;
-        function renderDesigner() {
-            const cvs = document.getElementById('editor-canvas');
-            const layout = state.layouts[state.size];
-            const scale = 2;
-            
-            cvs.innerHTML = '';
-            cvs.style.width = (state.size==='4x6'?304:100) + 'px';
-            cvs.style.height = (state.size==='4x6'?202:100) + 'px';
+            // FUNCIONES LOGICAS
+            function initApp() {
+                // Products
+                onSnapshot(query(collection(db, "products"), orderBy("name")), s => {
+                    state.products = [];
+                    s.forEach(d => state.products.push(d.data()));
+                });
+                // Layouts
+                getDoc(doc(db, "config", "layouts")).then(d => {
+                    if(d.exists()) state.layouts = { ...state.layouts, ...d.data() };
+                    renderDesigner(); renderPreview();
+                });
+                // Printer Status
+                onSnapshot(doc(db, "devices", "printer_01"), (doc) => {
+                    const st = document.getElementById('cloud-status');
+                    if(doc.exists() && doc.data().status === 'online') {
+                        st.innerText = "ONLINE"; st.className = "text-green-400 font-black";
+                    } else {
+                        st.innerText = "OFFLINE"; st.className = "text-red-500 font-bold";
+                    }
+                });
+            }
 
-            Object.keys(layout).forEach(k => {
-                const item = layout[k];
-                const el = document.createElement('div');
-                el.className = "draggable border border-blue-400 bg-white text-[10px] px-1 cursor-move";
-                el.innerText = k;
-                el.style.left = (item.x * scale / 2) + 'px';
-                el.style.top = (item.y * scale / 2) + 'px';
+            // EXPORTS GLOBALES
+            window.askPrint = () => {
+                if(!state.selectedProd) return showToast("Selecciona Producto", true);
+                const start = document.getElementById('inp-start').value;
+                const end = document.getElementById('inp-end').value;
+                document.getElementById('modal-range').innerText = `${start} al ${end}`;
+                document.getElementById('print-modal').classList.remove('hidden');
+            };
+
+            window.confirmPrint = async () => {
+                document.getElementById('print-modal').classList.add('hidden');
+                const start = parseInt(document.getElementById('inp-start').value);
+                const end = parseInt(document.getElementById('inp-end').value);
                 
-                // Drag logic simple
-                el.onmousedown = (e) => {
-                    dragItem = { k, el, ox: e.clientX, oy: e.clientY, ix: item.x, iy: item.y };
-                    document.onmousemove = (me) => {
-                        if(!dragItem) return;
-                        const dx = (me.clientX - dragItem.ox) * 2 / scale; // Convertir pixel a dot
-                        const dy = (me.clientY - dragItem.oy) * 2 / scale;
-                        layout[k].x = dragItem.ix + dx;
-                        layout[k].y = dragItem.iy + dy;
-                        renderDesigner(); // Re-render to update pos
-                    };
-                    document.onmouseup = () => { document.onmousemove = null; dragItem = null; };
+                const d = new Date();
+                const lot = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().substr(2)}`;
+                const exp = `${d.getDate()}/${d.getMonth()+4}/${d.getFullYear().toString().substr(2)}`;
+                const timeCode = `${d.getMonth()+1}${d.getDate()}${d.getHours()}${d.getMinutes()}`;
+                const uid = state.user.uid.substring(0,4).toUpperCase();
+                const qrBase = `${timeCode}${uid}`;
+
+                const jobData = {
+                    productName: state.selectedProd.name,
+                    lotDate: lot, expDate: exp, qrBase: qrBase,
+                    startSerial: start, endSerial: end,
+                    layout: state.size === '2x2' ? 'square_2x2' : 'horizontal_4x6',
+                    visualConfig: state.layouts[state.size],
+                    status: "pending", timestamp: serverTimestamp()
                 };
-                cvs.appendChild(el);
-            });
+
+                try {
+                    await setDoc(doc(db, "devices", "printer_01", "jobs", "active"), jobData);
+                    showToast("¡Subido a la Nube!", false);
+                    document.getElementById('inp-start').value = end + 1;
+                    document.getElementById('inp-end').value = end + 1;
+                } catch(e) { showToast("Error al subir", true); }
+            };
+
+            window.saveDesign = async () => {
+                await setDoc(doc(db, "config", "layouts"), state.layouts);
+                showToast("Diseño Guardado", false); renderPreview();
+            };
+
+            window.nav = (t) => {
+                ['prod','design','settings'].forEach(x => { // Use 'settings' ID
+                    document.getElementById(`view-${x}`).classList.add('hidden');
+                    document.getElementById(`nav-${x}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab";
+                });
+                document.getElementById(`view-${t}`).classList.remove('hidden');
+                document.getElementById(`nav-${t}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 active-tab";
+                if(t==='design') renderDesigner();
+            };
+
+            window.setLabelSize = (s) => {
+                state.size = s;
+                // Update buttons UI
+                const a = "flex-1 py-1 border rounded text-[10px] font-bold bg-slate-900 text-white";
+                const i = "flex-1 py-1 border rounded text-[10px] font-bold bg-white";
+                document.getElementById('btn-size-4x6').className = s==='4x6'?a:i;
+                document.getElementById('btn-size-2x2').className = s==='2x2'?a:i;
+                renderPreview(); renderDesigner();
+            }
+
+            window.closePrintModal = () => document.getElementById('print-modal').classList.add('hidden');
+
+            window.importProducts = async () => {
+                 const text = document.getElementById('import-text').value;
+                 const lines = text.split('\n');
+                 for(let line of lines) {
+                     const [code, name] = line.split('\t');
+                     if(code && name) await addDoc(collection(db, "products"), { code: code.trim(), name: name.trim() });
+                 }
+                 showToast("Importado", false);
+            };
+
+            // RENDERIZADO
+            function renderPreview() {
+                const wrap = document.getElementById('preview-wrapper');
+                const layout = state.layouts[state.size];
+                const scale = state.size === '4x6' ? 1.5 : 2.5;
+                const w = state.size === '4x6' ? 152 : 50; const h = state.size === '4x6' ? 101 : 50;
+                wrap.innerHTML = ''; wrap.style.width = (w*scale)+'px'; wrap.style.height = (h*scale)+'px';
+                
+                Object.keys(layout).forEach(k => {
+                    const item = layout[k];
+                    const el = document.createElement('div');
+                    el.style.position = 'absolute';
+                    el.style.left = (item.x * scale / 2) + 'px'; 
+                    el.style.top = (item.y * scale / 2) + 'px';
+                    el.style.fontSize = (item.size * 2 * scale) + 'px';
+                    el.style.fontWeight = 'bold';
+                    el.innerText = k === 'productName' ? (state.selectedProd?.name || 'PROD') : k.toUpperCase();
+                    if(k==='qrCode') { el.innerText=''; el.className="bg-black w-8 h-8"; }
+                    wrap.appendChild(el);
+                });
+            }
+
+            let dragItem = null;
+            function renderDesigner() {
+                const cvs = document.getElementById('editor-canvas');
+                const layout = state.layouts[state.size];
+                const scale = 2;
+                cvs.innerHTML = '';
+                cvs.style.width = (state.size==='4x6'?304:100) + 'px'; cvs.style.height = (state.size==='4x6'?202:100) + 'px';
+                Object.keys(layout).forEach(k => {
+                    const item = layout[k];
+                    const el = document.createElement('div');
+                    el.className = "draggable border border-blue-400 bg-white/80 text-[9px] px-1 cursor-move";
+                    el.innerText = k;
+                    el.style.left = (item.x * scale / 2) + 'px'; el.style.top = (item.y * scale / 2) + 'px';
+                    el.onmousedown = (e) => {
+                        dragItem = { k, el, ox: e.clientX, oy: e.clientY, ix: item.x, iy: item.y };
+                        document.onmousemove = (me) => {
+                            if(!dragItem) return;
+                            const dx = (me.clientX - dragItem.ox) * 2 / scale;
+                            const dy = (me.clientY - dragItem.oy) * 2 / scale;
+                            layout[k].x = dragItem.ix + dx; layout[k].y = dragItem.iy + dy;
+                            renderDesigner();
+                        };
+                        document.onmouseup = () => { document.onmousemove = null; dragItem = null; };
+                    };
+                    cvs.appendChild(el);
+                });
+            }
+
+            // SETTERS PROPS (Simplificado para drag)
+            window.setProp = (k, v) => {
+                if(dragItem) state.layouts[state.size][dragItem.k][k] = parseInt(v);
+            }
+
+            function showToast(msg, err) {
+                const t = document.getElementById('toast');
+                t.innerText = msg;
+                t.className = `fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 ${err ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`;
+                t.classList.remove('hidden');
+                setTimeout(() => t.classList.add('hidden'), 3000);
+            }
+
+            // Init
+            nav('prod');
+
+        } catch (error) {
+             console.error("Critical Init Error:", error);
         }
-        
-        window.saveDesign = async () => {
-            await setDoc(doc(db, "config", "layouts"), state.layouts);
-            showToast("Diseño Guardado", false);
-            renderPreview();
-        };
-
-        // --- UTILS ---
-        function updateDates() {
-            const d = new Date();
-            const fmt = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().substr(2)}`;
-            document.getElementById('txt-lot').innerText = fmt(d);
-            d.setMonth(d.getMonth() + 3);
-            document.getElementById('txt-exp').innerText = fmt(d);
-        }
-
-        window.calcTotal = () => {
-            const s = parseInt(document.getElementById('inp-start').value) || 0;
-            const e = parseInt(document.getElementById('inp-end').value) || 0;
-            document.getElementById('txt-total').innerText = Math.max(0, (e-s)+1);
-        }
-        document.getElementById('inp-start').addEventListener('input', calcTotal);
-        document.getElementById('inp-end').addEventListener('input', calcTotal);
-
-        function showToast(msg, isError) {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.className = `fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 flex items-center gap-2 ${isError ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`;
-            t.classList.remove('hidden');
-            setTimeout(() => t.classList.add('hidden'), 3000);
-        }
-
-        // Start
-        nav('prod');
-        renderDesigner();
-
     </script>
 </body>
 </html>
