@@ -3,43 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FORRAJES LABEL v05 (Fix)</title>
+    <title>FORRAJES LABEL v03 (Estable)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Iconos Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .active-tab { background-color: #0f172a; color: #fbbf24; }
-        .inactive-tab { color: #64748b; background-color: white; }
-        .draggable { cursor: move; touch-action: none; position: absolute; user-select: none; }
-        .canvas-bg { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 10px 10px; }
-        .selected-element { outline: 2px dashed #3b82f6; background: rgba(59,130,246,0.1); z-index: 10; }
+        .hidden-tab { display: none; }
+        .active-tab-btn { background-color: #0f172a; color: #eab308; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .inactive-tab-btn { color: #64748b; }
+        .inactive-tab-btn:hover { background-color: #f8fafc; }
+        .draggable { touch-action: none; user-select: none; cursor: grab; position: absolute; }
+        .draggable:active { cursor: grabbing; }
+        .selected-element { outline: 2px dashed #3b82f6; z-index: 50; background-color: rgba(59, 130, 246, 0.1); }
+        .canvas-bg {
+            background-color: #ffffff;
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen pb-20 font-sans select-none">
+<body class="bg-slate-100 min-h-screen pb-24 font-sans select-none overflow-x-hidden">
 
-    <!-- PANTALLA DE CARGA / ERROR -->
-    <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 transition-opacity duration-500">
-        <div class="text-yellow-500 flex flex-col items-center gap-4 text-center px-4">
-            <i data-lucide="loader" class="animate-spin w-10 h-10" id="loader-icon"></i>
-            <span class="font-bold uppercase tracking-widest" id="loader-text">INICIANDO SISTEMA...</span>
-            <div id="error-trace" class="hidden text-red-400 text-xs font-mono bg-black/50 p-2 rounded mt-4 max-w-sm text-left overflow-auto"></div>
+    <!-- PANTALLA DE CARGA -->
+    <div id="loader-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div class="text-yellow-500 flex flex-col items-center gap-4">
+            <i data-lucide="loader" class="animate-spin w-10 h-10"></i>
+            <span class="font-bold uppercase tracking-widest">CONECTANDO...</span>
         </div>
     </div>
 
-    <!-- MODAL CONFIRMACION -->
+    <!-- MODAL CONFIRMACION IMPRESIÓN -->
     <div id="print-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border-t-4 border-yellow-500 animate-in fade-in zoom-in duration-200">
             <h3 class="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
-                <i data-lucide="cloud-upload" class="w-5 h-5 text-yellow-600"></i> SUBIR TIRAJE
+                <i data-lucide="play-circle" class="w-5 h-5 text-yellow-600"></i> INICIAR TIRAJE
             </h3>
             <p class="text-sm text-slate-600 mb-4">
-                Se subirá la orden a la nube. La impresora la descargará automáticamente.<br>
-                Rango: <span class="font-bold text-slate-900" id="modal-range">--</span>
+                Se programará la impresora para el rango: <br>
+                <span class="font-bold text-slate-900 text-lg" id="modal-range">--</span>
             </p>
-            <button onclick="confirmPrint()" class="w-full bg-slate-900 text-yellow-500 py-4 rounded-lg font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
-                SUBIR A LA NUBE
-            </button>
+            <div class="bg-slate-100 p-2 rounded mb-4 text-xs flex items-center gap-2 text-slate-500 font-bold">
+                <i data-lucide="radio" class="w-4 h-4 text-blue-500"></i>
+                <span id="send-method-display">Calculando ruta...</span>
+            </div>
+            <div class="space-y-3">
+                <button onclick="confirmPrint('run')" class="w-full bg-slate-900 text-yellow-500 py-4 rounded-lg font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
+                    PROGRAMAR Y ARRANCAR
+                </button>
+            </div>
             <button onclick="closePrintModal()" class="mt-4 text-xs text-slate-400 font-bold hover:text-red-500 w-full text-center">CANCELAR</button>
         </div>
     </div>
@@ -47,376 +61,394 @@
     <!-- LOGIN -->
     <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-40 hidden">
         <div class="bg-white max-w-md w-full rounded-xl shadow-2xl overflow-hidden border-4 border-yellow-500 mx-4 fade-in">
-            <div class="bg-yellow-500 p-6 text-center">
-                <h1 class="text-3xl font-black text-slate-900">FORRAJES LABEL</h1>
-                <p class="text-sm font-bold opacity-80">Acceso Cloud</p>
+            <div class="bg-yellow-500 p-6 text-center" id="auth-header">
+                <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">FORRAJES LABEL</h1>
+                <p class="text-slate-900 font-bold opacity-75" id="auth-subtitle">INICIAR SESIÓN</p>
             </div>
-            <form id="auth-form" class="p-6 space-y-4">
-                <div id="login-error" class="hidden bg-red-100 text-red-600 p-2 rounded text-xs font-bold text-center">Datos incorrectos</div>
-                <input type="text" id="user-input" class="w-full p-3 border-2 rounded-lg font-bold uppercase" placeholder="USUARIO">
-                <input type="password" id="pass-input" class="w-full p-3 border-2 rounded-lg font-bold" placeholder="CONTRASEÑA">
-                <button type="submit" class="w-full bg-slate-900 text-yellow-500 py-3 rounded-lg font-black shadow-lg">ENTRAR</button>
+            <form id="auth-form" class="p-8 space-y-4">
+                <div id="auth-error" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded text-xs font-bold mb-4 flex items-center gap-2 animate-pulse"><i data-lucide="alert-circle" class="w-4 h-4"></i><span id="auth-error-msg">Error</span></div>
+                <div id="register-fields" class="hidden space-y-4 animate-in fade-in slide-in-from-top-2"><div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">NOMBRE</label><input type="text" id="reg-realname" class="w-full pl-3 p-3 bg-slate-50 border rounded font-bold uppercase"></div></div>
+                <div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">USUARIO</label><input type="text" id="login-username" class="w-full pl-3 p-3 bg-slate-50 border rounded font-bold uppercase"></div>
+                <div><label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">CONTRASEÑA</label><input type="password" id="login-password" class="w-full pl-3 p-3 bg-slate-50 border rounded font-bold"></div>
+                <button type="submit" id="auth-btn" class="w-full bg-slate-900 text-yellow-500 font-black py-4 rounded-lg hover:bg-slate-800 transition-colors shadow-lg uppercase">ENTRAR</button>
+                <div id="toggle-auth" class="text-center text-xs font-bold text-slate-400 cursor-pointer mt-6 border-t pt-4">¿NO TIENES CUENTA? <span class="text-blue-600 underline">REGÍSTRATE</span></div>
             </form>
         </div>
     </div>
 
-    <!-- APP HEADER -->
-    <header class="bg-slate-900 text-white p-3 shadow-md sticky top-0 z-40 flex justify-between items-center">
-        <div>
-            <div class="font-black text-yellow-500 leading-none">FORRAJES</div>
-            <div class="text-[10px] text-slate-400 font-bold" id="user-display">--</div>
-        </div>
-        <div class="flex items-center gap-2">
-            <!-- Estado de la impresora en la nube -->
-            <div class="flex items-center bg-slate-800 px-2 py-1 rounded text-[10px] font-bold">
-                <span class="mr-1 text-slate-400">IMPRESORA:</span>
-                <span id="cloud-status" class="text-yellow-500">BUSCANDO...</span>
+    <!-- APP PRINCIPAL -->
+    <div id="app-screen" class="hidden">
+        <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-30 border-b-4 border-yellow-500 flex justify-between items-center">
+            <div><h1 class="text-xl font-black text-yellow-500 italic truncate">FORRAJES LABEL <span class="text-[10px] bg-yellow-600 text-white px-1 rounded not-italic">v03</span></h1><p class="text-xs text-slate-400 font-bold">ID: <span id="user-short-id" class="bg-yellow-500 text-slate-900 px-1 rounded">--</span> <span id="user-display-name">...</span></p></div>
+            <div class="flex items-center gap-3"><div class="flex gap-1"><div id="status-db" title="DB" class="w-3 h-3 rounded-full bg-red-500 transition-colors"></div><div id="status-printer" title="WiFi" class="w-3 h-3 rounded-full bg-red-500 transition-colors"></div></div><button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button></div>
+        </header>
+
+        <div id="notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 z-50 hidden w-max max-w-[90%] text-sm transition-all"><span id="notif-icon"></span><span id="notif-msg"></span></div>
+
+        <main class="max-w-6xl mx-auto p-4">
+            <div class="flex gap-2 mb-6 bg-white p-1 rounded-lg shadow-sm overflow-x-auto">
+                <button onclick="switchTab('production')" id="tab-production" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 active-tab-btn"><i data-lucide="printer" class="w-4 h-4"></i> PROD</button>
+                <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn"><i data-lucide="history" class="w-4 h-4"></i> HIST</button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-3 px-4 rounded-md font-bold text-xs sm:text-sm flex justify-center items-center gap-2 inactive-tab-btn"><i data-lucide="settings" class="w-4 h-4"></i> AJUSTES</button>
             </div>
-            <button id="logout-btn" class="bg-slate-800 p-2 rounded hover:bg-red-600"><i data-lucide="log-out" class="w-4"></i></button>
-        </div>
-    </header>
 
-    <main class="max-w-4xl mx-auto p-3 space-y-4">
-        <!-- TABS -->
-        <div class="flex gap-2 bg-white p-1 rounded-lg shadow">
-            <button onclick="nav('prod')" id="nav-prod" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 active-tab"><i data-lucide="printer" class="w-4"></i> PROD</button>
-            <button onclick="nav('design')" id="nav-design" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab"><i data-lucide="edit-3" class="w-4"></i> DISEÑO</button>
-            <button onclick="nav('settings')" id="nav-settings" class="flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab"><i data-lucide="settings" class="w-4"></i> AJUSTES</button>
-        </div>
-
-        <!-- VISTA PROD -->
-        <div id="view-prod" class="grid md:grid-cols-2 gap-4">
-            <div class="space-y-4">
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-slate-800">
-                    <label class="text-[10px] font-bold text-slate-400 block mb-1">PRODUCTO</label>
-                    <div class="relative">
-                        <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-5"></i>
-                        <input type="text" id="prod-search" class="w-full pl-10 p-2 border-2 rounded-lg font-bold text-sm uppercase outline-none focus:border-yellow-500" placeholder="BUSCAR...">
-                        <div id="prod-list" class="hidden absolute top-full left-0 w-full bg-white border-2 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto"></div>
+            <div id="view-production" class="grid md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-slate-900 relative z-20">
+                        <h2 class="text-xs font-bold text-slate-400 mb-2 uppercase">1. PRODUCTO</h2>
+                        <div class="flex gap-2 mb-4"><button onclick="changeEditorSize('4x6')" id="prod-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs">4x6 HORIZ</button><button onclick="changeEditorSize('2x2')" id="prod-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs">2x2 CUAD</button></div>
+                        <div class="relative"><i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i><input type="text" id="prod-search" class="w-full pl-10 pr-10 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-800 focus:border-yellow-500 outline-none uppercase" placeholder="BUSCAR..."><button id="clear-search" class="absolute inset-y-0 right-0 pr-3 text-slate-400 hover:text-red-500 hidden"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+                        <div id="prod-list" class="absolute top-full left-0 w-full bg-white border-2 border-slate-200 rounded-b-lg shadow-xl max-h-60 overflow-y-auto mt-1 z-50 hidden"></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-yellow-500">
+                        <h2 class="text-xs font-bold text-slate-400 mb-2 uppercase">2. TIRAJE</h2>
+                        <div class="space-y-3">
+                            <div class="flex gap-2 items-center bg-slate-50 p-2 rounded"><span class="text-xs font-bold text-slate-500">CADUCIDAD:</span><input type="number" id="exp-duration" value="3" class="w-12 p-1 border rounded text-center font-bold"><select id="exp-unit" class="p-1 border rounded text-xs font-bold"><option value="days">DÍAS</option><option value="months" selected>MESES</option><option value="years">AÑOS</option></select></div>
+                            <div class="grid grid-cols-2 gap-2 text-xs"><div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">LOTE</span><span id="disp-lot" class="font-mono font-bold">--</span></div><div class="bg-slate-100 p-2 rounded"><span class="block text-slate-400">EXPIRA</span><span id="disp-exp" class="font-mono font-bold text-red-600">--</span></div></div>
+                            <div class="flex gap-2"><div class="flex-1"><label class="text-[10px] font-bold text-slate-400">INICIO</label><input type="number" id="serial-start" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-slate-50"></div><div class="flex-1"><label class="text-[10px] font-bold text-slate-400">FINAL</label><input type="number" id="serial-end" value="1" class="w-full p-2 border-2 rounded font-mono font-bold text-center bg-yellow-50 border-yellow-200"></div></div>
+                            <div class="text-center text-[10px] text-slate-400">Total: <span id="qty-calc" class="font-bold text-slate-700">1</span> etiquetas</div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500">
-                    <h2 class="text-xs font-bold text-slate-500 mb-2 uppercase">CONFIGURACIÓN</h2>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                         <div><label class="text-[9px] font-bold text-slate-400">INICIO</label><input type="number" id="inp-start" value="1" class="w-full p-2 border rounded font-mono font-bold text-center"></div>
-                         <div><label class="text-[9px] font-bold text-slate-400">FIN</label><input type="number" id="inp-end" value="1" class="w-full p-2 border rounded font-mono font-bold text-center bg-yellow-50"></div>
+                <div class="space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-lg border relative flex flex-col items-center">
+                        <span class="absolute top-0 right-0 bg-slate-200 text-[10px] px-2 font-bold text-slate-500">VISTA PREVIA</span>
+                        <div id="production-preview-wrapper" class="mt-4 border border-dashed border-slate-300 p-2 overflow-hidden flex justify-center items-center bg-slate-100 w-full h-64"></div>
+                        <div class="mt-2 text-xs text-slate-400 font-bold" id="preview-info">--</div>
                     </div>
+                    <button onclick="openPrintModal()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 hover:bg-red-700 transition-transform"><i data-lucide="play" class="w-6 h-6"></i> MANDAR TIRAJE A MÁQUINA</button>
+                </div>
+            </div>
+
+            <!-- VISTA DISEÑADOR -->
+             <div id="view-designer" class="hidden fixed inset-0 bg-slate-100 z-50 flex flex-col">
+                <div class="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md">
+                    <h2 class="font-black text-yellow-500 italic flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5"></i> EDITOR DE ETIQUETAS</h2>
                     <div class="flex gap-2">
-                        <button onclick="setLabelSize('4x6')" id="btn-size-4x6" class="flex-1 py-1 border rounded text-[10px] font-bold bg-slate-900 text-white">4x6</button>
-                        <button onclick="setLabelSize('2x2')" id="btn-size-2x2" class="flex-1 py-1 border rounded text-[10px] font-bold bg-white">2x2</button>
+                        <button onclick="saveLayoutToDB()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> GUARDAR</button>
+                        <button onclick="switchTab('settings')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2"><i data-lucide="x" class="w-4 h-4"></i> CERRAR</button>
+                    </div>
+                </div>
+                <div class="flex-1 flex overflow-hidden">
+                    <div class="w-72 bg-white shadow-xl border-r z-20 flex flex-col overflow-y-auto">
+                        <div class="p-4 border-b"><label class="text-[10px] font-bold text-slate-400 block mb-1">TAMAÑO ETIQUETA</label><div class="flex gap-2"><button onclick="changeEditorSize('4x6')" id="edit-size-4x6" class="flex-1 py-2 border rounded font-bold text-xs">4x6</button><button onclick="changeEditorSize('2x2')" id="edit-size-2x2" class="flex-1 py-2 border rounded font-bold text-xs">2x2</button></div></div>
+                        <div class="p-4 space-y-4">
+                            <div><label class="text-[10px] font-bold text-slate-400 mb-1 block">OBJETOS</label><select id="object-selector" onchange="selectElement(this.value)" class="w-full p-2 border-2 rounded font-bold text-sm bg-slate-50 uppercase"><option value="">-- SELECCIONAR --</option><option value="productName">NOMBRE PRODUCTO</option><option value="qrCode">CÓDIGO QR</option><option value="serial">UID (NUMERO UNICO)</option><option value="footer">LOTE Y CADUCIDAD</option><option value="logo">IMAGEN / LOGO</option></select></div>
+                            <hr class="border-slate-100">
+                            <div id="element-properties" class="hidden space-y-4">
+                                <div class="flex justify-between items-center bg-blue-50 p-2 rounded"><span class="text-xs font-black text-blue-800 uppercase" id="sel-el-name">ELEMENTO</span><button onclick="centerElement()" class="text-xs bg-white border px-2 py-1 rounded hover:bg-blue-100" title="Centrar">Centrar</button></div>
+                                <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold text-slate-400">X</label><input type="number" id="prop-x" onchange="updateSelectedProp('x', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div><div><label class="text-[10px] font-bold text-slate-400">Y</label><input type="number" id="prop-y" onchange="updateSelectedProp('y', this.value)" class="w-full p-2 border rounded text-xs font-mono"></div></div>
+                                <div><label class="text-[10px] font-bold text-slate-400">TAMAÑO</label><input type="range" id="prop-size" min="1" max="20" step="1" oninput="updateSelectedProp('size', this.value)" class="w-full accent-blue-600"><div class="flex justify-between text-[10px] text-slate-400"><span>1x</span><span id="val-size" class="font-bold text-black">1</span><span>20x</span></div></div>
+                                <div id="prop-width-container"><label class="text-[10px] font-bold text-slate-400">ANCHO CAJA</label><input type="number" id="prop-width" onchange="updateSelectedProp('width', this.value)" class="w-full p-2 border rounded text-xs font-mono" placeholder="Ej. 200"></div>
+                                <div><label class="text-[10px] font-bold text-slate-400 mb-1 block">ROTACIÓN</label><div class="flex gap-1"><button onclick="updateSelectedProp('rotation', 0)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">0</button><button onclick="updateSelectedProp('rotation', 90)" class="flex-1 border p-1 rounded text-xs hover:bg-slate-50">90</button></div></div>
+                            </div>
+                            <div id="no-selection" class="text-center py-10 text-slate-400 text-xs italic border-2 border-dashed rounded bg-slate-50">Selecciona un objeto</div>
+                            <div class="border-t pt-4"><div class="flex justify-between items-center mb-2"><label class="flex items-center gap-2 text-xs font-bold cursor-pointer"><input type="checkbox" id="toggle-logo" onchange="toggleLogo(this.checked)" class="accent-blue-600"> ACTIVAR LOGO</label></div><div id="logo-uploader" class="hidden space-y-2"><input type="file" id="logo-file" accept="image/png, image/jpeg" class="hidden" onchange="handleLogoUpload(this)"><button onclick="document.getElementById('logo-file').click()" class="w-full border border-dashed border-blue-400 bg-blue-50 text-blue-600 py-2 rounded text-xs font-bold hover:bg-blue-100">CARGAR IMAGEN</button></div></div>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-slate-200 overflow-auto flex items-center justify-center p-8 relative">
+                        <div id="designer-canvas" class="bg-white shadow-2xl relative transition-all cursor-crosshair overflow-hidden canvas-bg border border-slate-300"></div>
+                        <div class="absolute bottom-4 right-4 bg-white/80 p-2 rounded text-[10px] font-mono text-slate-500 shadow pointer-events-none">X: <span id="debug-x">0</span> Y: <span id="debug-y">0</span></div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-4">
-                <div class="bg-white p-4 rounded-xl shadow text-center">
-                    <div class="text-[10px] font-bold text-slate-400 mb-2">PREVIEW</div>
-                    <div id="preview-wrapper" class="mx-auto border-2 border-dashed border-slate-300 bg-white overflow-hidden relative mb-4 h-48 flex justify-center items-center bg-slate-50"></div>
-                    <button onclick="askPrint()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-                        <i data-lucide="cloud-upload" class="w-6"></i> SUBIR TIRAJE
-                    </button>
+            <!-- VISTA HISTORIAL -->
+            <div id="view-history" class="hidden bg-white rounded-xl shadow-sm overflow-hidden p-4">
+                <h3 class="font-bold text-slate-700 mb-4">HISTORIAL</h3>
+                <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto"><div class="text-center text-slate-400 text-sm">Cargando...</div></div>
+            </div>
+
+            <!-- VISTA AJUSTES -->
+            <div id="view-settings" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-600 flex justify-between items-center">
+                    <div><h2 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i data-lucide="layout-template" class="w-5 h-5"></i> DISEÑO DE ETIQUETA</h2><p class="text-xs text-slate-500 mt-1">Modificar formato.</p></div>
+                    <button onclick="switchTab('designer')" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition-transform active:scale-95 flex items-center gap-2"><i data-lucide="edit" class="w-4 h-4"></i> ABRIR DISEÑADOR</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-yellow-500">
+                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2"><i data-lucide="wifi" class="w-5 h-5"></i> CONEXIÓN IMPRESORA</h2>
+                    <div class="space-y-4">
+                        <div class="flex gap-2 items-end">
+                            <div class="flex-1"><label class="text-xs font-bold text-slate-500">IP ACTUAL (ESP32)</label><input type="text" id="esp-ip" value="192.168.1.50" class="w-full p-2 border rounded font-mono font-bold bg-slate-50"></div>
+                            <button onclick="testConnection()" class="bg-slate-800 text-white p-2 rounded hover:bg-slate-700 h-10 font-bold text-xs">PROBAR CONEXIÓN</button>
+                        </div>
+                        
+                        <!-- OPCIÓN BLUETOOTH (Solo como respaldo) -->
+                         <div class="border-t pt-4">
+                            <h3 class="text-sm font-bold text-slate-700 mb-2">OPCIONAL: BLUETOOTH</h3>
+                            <button onclick="connectBLE()" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-xs hover:bg-blue-700 shadow">CONECTAR POR BLUETOOTH (RESPALDO)</button>
+                            <div id="ble-status" class="text-[10px] text-center text-slate-400 mt-1">Desconectado</div>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <h3 class="text-sm font-bold text-slate-700 mb-2">ACTUALIZAR WIFI</h3>
+                            <div class="grid grid-cols-2 gap-2"><input type="text" id="new-wifi-ssid" placeholder="Nombre WiFi Real" class="p-2 border rounded text-xs"><input type="text" id="new-wifi-pass" placeholder="Contraseña WiFi" class="p-2 border rounded text-xs"></div>
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="updateEspWifi('http')" class="flex-1 bg-yellow-500 text-slate-900 py-2 rounded font-bold text-xs hover:bg-yellow-400">ENVIAR POR WIFI (IP)</button>
+                                <button onclick="updateEspWifi('ble')" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-xs hover:bg-blue-500">ENVIAR POR BLUETOOTH</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-green-500">
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="database" class="w-5 h-5"></i> IMPORTAR PRODUCTOS</h3>
+                    <textarea id="import-text" class="w-full h-24 border p-2 text-xs mb-2 font-mono rounded" placeholder="CODIGO [TAB] NOMBRE"></textarea>
+                    <button onclick="importProducts()" class="bg-green-600 text-white w-full py-2 rounded font-bold text-xs hover:bg-green-700">PROCESAR LISTA</button>
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- VISTA DISEÑO -->
-        <div id="view-design" class="hidden bg-white p-4 rounded-xl shadow space-y-4">
-            <div class="flex justify-between">
-                <h2 class="font-bold text-slate-700">EDITOR</h2>
-                <button onclick="saveDesign()" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">GUARDAR</button>
-            </div>
-            <div class="bg-slate-200 p-4 rounded overflow-auto flex justify-center">
-                <div id="editor-canvas" class="bg-white shadow-xl relative border border-slate-300 canvas-bg overflow-hidden"></div>
-            </div>
-            <div class="p-2 bg-slate-50 rounded border text-xs grid grid-cols-2 gap-2">
-                <div><span class="font-bold">OBJETO:</span> <span id="prop-name" class="text-blue-600">Ninguno</span></div>
-                <div class="flex gap-1">
-                    <input type="number" id="val-x" class="w-12 p-1 border" placeholder="X" onchange="setProp('x',this.value)">
-                    <input type="number" id="val-y" class="w-12 p-1 border" placeholder="Y" onchange="setProp('y',this.value)">
-                    <input type="number" id="val-size" class="w-12 p-1 border" placeholder="SZ" onchange="setProp('size',this.value)">
-                </div>
-            </div>
-        </div>
-        
-        <!-- VISTA AJUSTES -->
-        <div id="view-settings" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-500">
-                <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="database" class="w-4"></i> IMPORTAR PRODUCTOS</h3>
-                <textarea id="import-text" class="w-full h-24 border p-2 text-xs mb-2 font-mono rounded" placeholder="CODIGO [TAB] NOMBRE"></textarea>
-                <button onclick="importProducts()" class="bg-green-600 text-white w-full py-2 rounded font-bold text-xs hover:bg-green-700">PROCESAR LISTA</button>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- TOAST -->
-    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 hidden"></div>
-
+    <!-- JAVASCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, setDoc, doc, getDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // CONFIGURACIÓN (NO EDITAR)
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = { apiKey: "AIzaSyBFsPNR_MlgYp00Wu3UQTtYmrGc9P2B0JM", authDomain: "forrajeslabel.firebaseapp.com", projectId: "forrajeslabel", storageBucket: "forrajeslabel.firebasestorage.app", messagingSenderId: "285841575830", appId: "1:285841575830:web:79c6ac47fe8c44569297b7", measurementId: "G-HHV6KS7XXE" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // ESTADO GLOBAL
+        let currentUser = null, userData = null, products = [], selectedProduct = null;
+        let currentSizeId = '4x6';
+        let layouts = { 
+            '4x6': { productName: { x: 20, y: 20, size: 3, rotation: 0, align: 'left', width: 0, type: 'text' }, qrCode: { x: 300, y: 20, size: 6, rotation: 0, align: 'left', width: 0, type: 'qr' }, serial: { x: 20, y: 150, size: 4, rotation: 0, align: 'left', width: 0, type: 'text' }, footer: { x: 20, y: 220, size: 2, rotation: 0, align: 'left', width: 0, type: 'text' }, logo: { x: 300, y: 150, size: 4, rotation: 0, align: 'left', width: 0, type: 'logo', visible: false, src: '' } },
+            '2x2': { productName: { x: 5, y: 5, size: 2, rotation: 0, align: 'center', width: 45, type: 'text' }, qrCode: { x: 10, y: 35, size: 4, rotation: 0, align: 'left', width: 0, type: 'qr' }, serial: { x: 5, y: 105, size: 2, rotation: 0, align: 'center', width: 45, type: 'text' }, footer: { x: 5, y: 135, size: 1, rotation: 0, align: 'left', width: 45, type: 'text' }, logo: { x: 5, y: 50, size: 2, rotation: 0, align: 'left', width: 0, type: 'logo', visible: false, src: '' } }
+        };
+        let selectedElementKey = null, isDragging = false, dragOffset = { x: 0, y: 0 };
         
-        // MANEJO DE ERRORES GLOBAL
-        window.onerror = function(message, source, lineno, colno, error) {
-             const loader = document.getElementById('loader-screen');
-             const errTrace = document.getElementById('error-trace');
-             const icon = document.getElementById('loader-icon');
-             const text = document.getElementById('loader-text');
-             
-             loader.classList.remove('hidden');
-             icon.classList.remove('animate-spin');
-             icon.setAttribute('data-lucide', 'alert-triangle');
-             text.innerText = "ERROR DE SISTEMA";
-             text.className = "text-red-500 font-black";
-             errTrace.classList.remove('hidden');
-             errTrace.innerText = `${message}\nLinea: ${lineno}`;
-             lucide.createIcons();
+        // BLE Variables
+        let bleDevice, bleServer, bleService, bleCharWrite;
+        const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"; // UUID Custom para ESP32
+        const BLE_CHAR_UUID    = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+        // INIT
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateDates();
+            onAuthStateChanged(auth, async (user) => {
+                document.getElementById('loader-screen').style.display = 'none';
+                if (user) {
+                    currentUser = user;
+                    try {
+                        const docSnap = await getDoc(doc(db, "users", user.uid));
+                        if (docSnap.exists()) userData = docSnap.data();
+                        loadLayoutsFromDB();
+                    } catch (e) {}
+                    showApp();
+                    initDataListeners();
+                } else { showLogin(); }
+            });
+        });
+
+        // --- BLE LOGIC ---
+        window.connectBLE = async () => {
+            try {
+                showNotify("Buscando... Selecciona el dispositivo", "warning");
+                // CHANGE: acceptAllDevices: true permite ver todo y elegir manualmente
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true, 
+                    optionalServices: [BLE_SERVICE_UUID]
+                });
+                
+                bleDevice.addEventListener('gattserverdisconnected', () => {
+                    document.getElementById('ble-status').innerText = "Desconectado";
+                    document.getElementById('status-ble').classList.replace('bg-green-500', 'bg-slate-600');
+                    showNotify("Bluetooth desconectado", "error");
+                });
+
+                bleServer = await bleDevice.gatt.connect();
+                bleService = await bleServer.getPrimaryService(BLE_SERVICE_UUID);
+                bleCharWrite = await bleService.getCharacteristic(BLE_CHAR_UUID);
+
+                document.getElementById('ble-status').innerText = "CONECTADO: " + bleDevice.name;
+                document.getElementById('status-ble').classList.replace('bg-slate-600', 'bg-green-500');
+                showNotify("¡Conectado por Bluetooth!", "success");
+            } catch (error) {
+                console.error(error);
+                showNotify("Error Bluetooth: " + error.message, "error");
+            }
         };
 
-        // INICIALIZACIÓN SEGURA
-        try {
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            const auth = getAuth(app);
-
-            let state = {
-                user: null, products: [], selectedProd: null, size: '4x6',
-                layouts: { 
-                    '4x6': { productName: {x:30,y:30,size:3}, qrCode: {x:500,y:50,size:8}, serial: {x:30,y:240,size:4}, footer: {x:30,y:720,size:2} },
-                    '2x2': { productName: {x:10,y:10,size:2}, qrCode: {x:120,y:60,size:5}, serial: {x:10,y:250,size:2}, footer: {x:10,y:350,size:1} }
+        // Enviar datos en trozos pequeños para no saturar el BLE (Solución para "Paquetitos")
+        async function sendViaBLE(dataObj) {
+            if (!bleCharWrite) return false;
+            try {
+                const json = JSON.stringify(dataObj);
+                const chunkSize = 50; 
+                const encoder = new TextEncoder();
+                for (let i = 0; i < json.length; i += chunkSize) {
+                    await bleCharWrite.writeValue(encoder.encode(json.substring(i, i + chunkSize)));
+                    await new Promise(r => setTimeout(r, 50)); 
                 }
+                return true;
+            } catch (e) { return false; }
+        }
+
+        // --- WIFI UPDATE ---
+        window.updateEspWifi = async (method) => { 
+            const ssid = document.getElementById('new-wifi-ssid').value; 
+            const pass = document.getElementById('new-wifi-pass').value; 
+            if(!ssid || !pass) return showNotify("Ingresa datos WiFi", "error"); 
+            
+            const payload = { ssid, pass, type: "wifi_config" }; 
+
+            if (method === 'ble') {
+                if(!bleCharWrite) return showNotify("Primero conecta el Bluetooth", "error");
+                const res = await sendViaBLE(payload);
+                if(res) showNotify("Credenciales enviadas por Bluetooth. El ESP32 se reiniciará.", "success");
+                else showNotify("Error enviando por Bluetooth", "error");
+            } else {
+                const ip = document.getElementById('esp-ip').value;
+                try { 
+                    await fetch(`http://${ip}/wifi`, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors' }); 
+                    showNotify("Enviado por IP. ESP32 Reiniciando...", "success"); 
+                } catch(e) { showNotify("Error de conexión IP", "error"); } 
+            }
+        };
+
+        // --- IMPRESIÓN / TIRAJE ---
+        window.openPrintModal = () => {
+            if (!selectedProduct) return showNotify("Selecciona un producto", "error");
+            const start = parseInt(document.getElementById('serial-start').value);
+            const end = parseInt(document.getElementById('serial-end').value);
+            document.getElementById('modal-range').innerText = `${start} al ${end}`;
+            document.getElementById('modal-qty').innerText = (end - start) + 1;
+            
+            // Determinar método visual
+            let method = "WiFi (IP)";
+            if (bleCharWrite && bleDevice && bleDevice.gatt.connected) method = "BLUETOOTH (Prioridad)";
+            document.getElementById('send-method-display').innerText = "Envío vía: " + method;
+            
+            document.getElementById('print-modal').classList.remove('hidden');
+        }
+        window.closePrintModal = () => document.getElementById('print-modal').classList.add('hidden');
+
+        window.confirmPrint = async () => {
+            closePrintModal();
+            const ip = document.getElementById('esp-ip').value;
+            const start = parseInt(document.getElementById('serial-start').value);
+            const end = parseInt(document.getElementById('serial-end').value);
+            const lot = document.getElementById('disp-lot').innerText;
+            const exp = document.getElementById('disp-exp').innerText;
+            const uid = userData ? userData.shortId : "00";
+            const now = new Date();
+            const timeStr = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + String(now.getSeconds()).padStart(2,'0');
+            const qrBase = `${timeStr}${uid}`; 
+
+            const payload = {
+                type: "print_job",
+                productName: selectedProduct.name,
+                lotDate: lot,
+                expDate: exp,
+                qrBase: qrBase,
+                startSerial: start,
+                endSerial: end,
+                layout: currentSizeId === "2x2" ? "square_2x2" : "horizontal_4x6",
+                visualConfig: layouts[currentSizeId]
             };
 
-            window.addEventListener('DOMContentLoaded', () => {
-                lucide.createIcons();
-                
-                // AUTH LISTENER
-                auth.onAuthStateChanged(u => {
-                    document.getElementById('loader-screen').classList.add('hidden');
-                    if(u) {
-                        state.user = u;
-                        document.getElementById('login-screen').classList.add('hidden');
-                        document.getElementById('app-screen').classList.remove('hidden');
-                        const cleanName = u.email ? u.email.split('@')[0].toUpperCase() : 'USER';
-                        document.getElementById('user-display').innerText = cleanName;
-                        initApp();
-                    } else {
-                        document.getElementById('login-screen').classList.remove('hidden');
-                    }
-                });
-
-                // EVENTOS
-                const loginForm = document.getElementById('login-form');
-                if(loginForm) loginForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const u = document.getElementById('user-input').value.trim().replace(/\s/g,'').toLowerCase();
-                    const p = document.getElementById('pass-input').value;
-                    const email = `${u}@sistema.local`;
-                    try { await signInWithEmailAndPassword(auth, email, p); } 
-                    catch(err) { 
-                        try { await createUserWithEmailAndPassword(auth, email, p); } 
-                        catch(e2) { document.getElementById('login-error').classList.remove('hidden'); }
-                    }
-                });
-
-                const logoutBtn = document.getElementById('logout-btn');
-                if(logoutBtn) logoutBtn.addEventListener('click', () => auth.signOut());
-
-                const prodSearch = document.getElementById('prod-search');
-                if(prodSearch) prodSearch.addEventListener('input', (e) => {
-                    const val = e.target.value.toUpperCase();
-                    const list = document.getElementById('prod-list');
-                    list.innerHTML = '';
-                    if(val.length > 0) {
-                        list.classList.remove('hidden');
-                        state.products.filter(p => p.name.includes(val)).forEach(p => {
-                            const div = document.createElement('div');
-                            div.className = "p-2 hover:bg-slate-100 cursor-pointer border-b text-xs font-bold";
-                            div.innerText = p.name;
-                            div.onclick = () => {
-                                state.selectedProd = p;
-                                document.getElementById('prod-search').value = p.name;
-                                list.classList.add('hidden');
-                                renderPreview();
-                            };
-                            list.appendChild(div);
-                        });
-                    } else { list.classList.add('hidden'); }
-                });
-            });
-
-            // FUNCIONES LOGICAS
-            function initApp() {
-                // Products
-                onSnapshot(query(collection(db, "products"), orderBy("name")), s => {
-                    state.products = [];
-                    s.forEach(d => state.products.push(d.data()));
-                });
-                // Layouts
-                getDoc(doc(db, "config", "layouts")).then(d => {
-                    if(d.exists()) state.layouts = { ...state.layouts, ...d.data() };
-                    renderDesigner(); renderPreview();
-                });
-                // Printer Status
-                onSnapshot(doc(db, "devices", "printer_01"), (doc) => {
-                    const st = document.getElementById('cloud-status');
-                    if(doc.exists() && doc.data().status === 'online') {
-                        st.innerText = "ONLINE"; st.className = "text-green-400 font-black";
-                    } else {
-                        st.innerText = "OFFLINE"; st.className = "text-red-500 font-bold";
-                    }
-                });
+            let success = false;
+            
+            // 1. INTENTO BLUETOOTH
+            if (bleCharWrite && bleDevice && bleDevice.gatt.connected) {
+                console.log("Intentando envío por Bluetooth...");
+                success = await sendViaBLE(payload);
+                if (success) {
+                    showNotify("¡Tiraje enviado por BLUETOOTH!", "success");
+                } else {
+                    console.error("Fallo envío Bluetooth");
+                }
             }
 
-            // EXPORTS GLOBALES
-            window.askPrint = () => {
-                if(!state.selectedProd) return showToast("Selecciona Producto", true);
-                const start = document.getElementById('inp-start').value;
-                const end = document.getElementById('inp-end').value;
-                document.getElementById('modal-range').innerText = `${start} al ${end}`;
-                document.getElementById('print-modal').classList.remove('hidden');
-            };
-
-            window.confirmPrint = async () => {
-                document.getElementById('print-modal').classList.add('hidden');
-                const start = parseInt(document.getElementById('inp-start').value);
-                const end = parseInt(document.getElementById('inp-end').value);
-                
-                const d = new Date();
-                const lot = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().substr(2)}`;
-                const exp = `${d.getDate()}/${d.getMonth()+4}/${d.getFullYear().toString().substr(2)}`;
-                const timeCode = `${d.getMonth()+1}${d.getDate()}${d.getHours()}${d.getMinutes()}`;
-                const uid = state.user.uid.substring(0,4).toUpperCase();
-                const qrBase = `${timeCode}${uid}`;
-
-                const jobData = {
-                    productName: state.selectedProd.name,
-                    lotDate: lot, expDate: exp, qrBase: qrBase,
-                    startSerial: start, endSerial: end,
-                    layout: state.size === '2x2' ? 'square_2x2' : 'horizontal_4x6',
-                    visualConfig: state.layouts[state.size],
-                    status: "pending", timestamp: serverTimestamp()
-                };
+            // 2. INTENTO WIFI (Si falló BT o no estaba conectado)
+            if (!success) {
+                console.log(`Intentando enviar a http://${ip}/configure`);
+                // Check if IP looks valid
+                if (!ip || ip.length < 7) {
+                     showNotify("Error: IP de impresora no válida", "error");
+                     return;
+                }
 
                 try {
-                    await setDoc(doc(db, "devices", "printer_01", "jobs", "active"), jobData);
-                    showToast("¡Subido a la Nube!", false);
-                    document.getElementById('inp-start').value = end + 1;
-                    document.getElementById('inp-end').value = end + 1;
-                } catch(e) { showToast("Error al subir", true); }
-            };
+                    const controller = new AbortController(); 
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+                    
+                    const response = await fetch(`http://${ip}/configure`, { 
+                        method: 'POST', 
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }, 
+                        body: JSON.stringify(payload), 
+                        signal: controller.signal, 
+                        mode: 'no-cors' // Cambiado a no-cors para evitar bloqueo (opaque)
+                    });
+                    clearTimeout(timeoutId);
 
-            window.saveDesign = async () => {
-                await setDoc(doc(db, "config", "layouts"), state.layouts);
-                showToast("Diseño Guardado", false); renderPreview();
-            };
+                    // Con no-cors no podemos saber si fue ok, asumimos que si no lanzó error de red, llegó.
+                    success = true; 
+                    showNotify("¡Tiraje enviado por WIFI!", "success");
+                    
+                } catch (e) { 
+                    console.error("Fallo envío WiFi:", e);
+                    errorMsg = e.message;
+                    if (e.name === 'AbortError') errorMsg = "Tiempo de espera agotado (Timeout)";
+                    if (e.message.includes('Failed to fetch')) errorMsg = "No se pudo conectar a la IP (Red o Bloqueo)";
+                }
+            }
 
-            window.nav = (t) => {
-                ['prod','design','settings'].forEach(x => { // Use 'settings' ID
-                    document.getElementById(`view-${x}`).classList.add('hidden');
-                    document.getElementById(`nav-${x}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 inactive-tab";
+            if (!success) {
+                showNotify(`⚠️ FALLO DE ENVÍO: ${errorMsg}`, "error");
+            }
+
+            try {
+                await addDoc(collection(db, "print_history"), {
+                    userId: userData.shortId, userName: userData.username, product: selectedProduct.name, lot: lot, startSerial: start, endSerial: end, total: (end-start)+1, qrBase: qrBase, timestamp: serverTimestamp(), printerStatus: success ? "OK" : "FAILED"
                 });
-                document.getElementById(`view-${t}`).classList.remove('hidden');
-                document.getElementById(`nav-${t}`).className = "flex-1 py-2 rounded text-xs font-bold flex justify-center items-center gap-2 active-tab";
-                if(t==='design') renderDesigner();
-            };
-
-            window.setLabelSize = (s) => {
-                state.size = s;
-                // Update buttons UI
-                const a = "flex-1 py-1 border rounded text-[10px] font-bold bg-slate-900 text-white";
-                const i = "flex-1 py-1 border rounded text-[10px] font-bold bg-white";
-                document.getElementById('btn-size-4x6').className = s==='4x6'?a:i;
-                document.getElementById('btn-size-2x2').className = s==='2x2'?a:i;
-                renderPreview(); renderDesigner();
-            }
-
-            window.closePrintModal = () => document.getElementById('print-modal').classList.add('hidden');
-
-            window.importProducts = async () => {
-                 const text = document.getElementById('import-text').value;
-                 const lines = text.split('\n');
-                 for(let line of lines) {
-                     const [code, name] = line.split('\t');
-                     if(code && name) await addDoc(collection(db, "products"), { code: code.trim(), name: name.trim() });
-                 }
-                 showToast("Importado", false);
-            };
-
-            // RENDERIZADO
-            function renderPreview() {
-                const wrap = document.getElementById('preview-wrapper');
-                const layout = state.layouts[state.size];
-                const scale = state.size === '4x6' ? 1.5 : 2.5;
-                const w = state.size === '4x6' ? 152 : 50; const h = state.size === '4x6' ? 101 : 50;
-                wrap.innerHTML = ''; wrap.style.width = (w*scale)+'px'; wrap.style.height = (h*scale)+'px';
-                
-                Object.keys(layout).forEach(k => {
-                    const item = layout[k];
-                    const el = document.createElement('div');
-                    el.style.position = 'absolute';
-                    el.style.left = (item.x * scale / 2) + 'px'; 
-                    el.style.top = (item.y * scale / 2) + 'px';
-                    el.style.fontSize = (item.size * 2 * scale) + 'px';
-                    el.style.fontWeight = 'bold';
-                    el.innerText = k === 'productName' ? (state.selectedProd?.name || 'PROD') : k.toUpperCase();
-                    if(k==='qrCode') { el.innerText=''; el.className="bg-black w-8 h-8"; }
-                    wrap.appendChild(el);
-                });
-            }
-
-            let dragItem = null;
-            function renderDesigner() {
-                const cvs = document.getElementById('editor-canvas');
-                const layout = state.layouts[state.size];
-                const scale = 2;
-                cvs.innerHTML = '';
-                cvs.style.width = (state.size==='4x6'?304:100) + 'px'; cvs.style.height = (state.size==='4x6'?202:100) + 'px';
-                Object.keys(layout).forEach(k => {
-                    const item = layout[k];
-                    const el = document.createElement('div');
-                    el.className = "draggable border border-blue-400 bg-white/80 text-[9px] px-1 cursor-move";
-                    el.innerText = k;
-                    el.style.left = (item.x * scale / 2) + 'px'; el.style.top = (item.y * scale / 2) + 'px';
-                    el.onmousedown = (e) => {
-                        dragItem = { k, el, ox: e.clientX, oy: e.clientY, ix: item.x, iy: item.y };
-                        document.onmousemove = (me) => {
-                            if(!dragItem) return;
-                            const dx = (me.clientX - dragItem.ox) * 2 / scale;
-                            const dy = (me.clientY - dragItem.oy) * 2 / scale;
-                            layout[k].x = dragItem.ix + dx; layout[k].y = dragItem.iy + dy;
-                            renderDesigner();
-                        };
-                        document.onmouseup = () => { document.onmousemove = null; dragItem = null; };
-                    };
-                    cvs.appendChild(el);
-                });
-            }
-
-            // SETTERS PROPS (Simplificado para drag)
-            window.setProp = (k, v) => {
-                if(dragItem) state.layouts[state.size][dragItem.k][k] = parseInt(v);
-            }
-
-            function showToast(msg, err) {
-                const t = document.getElementById('toast');
-                t.innerText = msg;
-                t.className = `fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 ${err ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`;
-                t.classList.remove('hidden');
-                setTimeout(() => t.classList.add('hidden'), 3000);
-            }
-
-            // Init
-            nav('prod');
-
-        } catch (error) {
-             console.error("Critical Init Error:", error);
+                const nextStart = end + 1;
+                document.getElementById('serial-start').value = nextStart; document.getElementById('serial-end').value = nextStart; localStorage.setItem('lastSerial', nextStart); updateQtyCalc(); renderProductionPreview();
+            } catch (e) {}
         }
+
+        // --- EXISTING LOGIC (Layouts, Drag, Auth, etc) ---
+        async function loadLayoutsFromDB() { try { const snap = await getDoc(doc(db, "config", "layouts")); if (snap.exists()) { const loaded = snap.data(); if(loaded['4x6']) layouts['4x6'] = { ...layouts['4x6'], ...loaded['4x6'] }; if(loaded['2x2']) layouts['2x2'] = { ...layouts['2x2'], ...loaded['2x2'] }; } } catch (e) {} changeEditorSize(currentSizeId); renderProductionPreview(); }
+        window.saveLayoutToDB = async () => { try { await setDoc(doc(db, "config", "layouts"), layouts); showNotify("Diseño guardado exitosamente en la base de datos", "success"); renderProductionPreview(); } catch (e) { showNotify("Error: " + e.message, "error"); } };
+        window.changeEditorSize = (sizeId) => { currentSizeId = sizeId; const is4x6 = currentSizeId === '4x6'; document.getElementById('edit-size-4x6').className = is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('edit-size-2x2').className = !is4x6 ? "flex-1 py-2 border rounded font-bold text-xs bg-slate-900 text-white" : "flex-1 py-2 border rounded font-bold text-xs bg-white text-slate-500 hover:bg-slate-50"; document.getElementById('prod-size-4x6').className = document.getElementById('edit-size-4x6').className; document.getElementById('prod-size-2x2').className = document.getElementById('edit-size-2x2').className; selectedElementKey = null; updatePropertiesPanel(); renderDesignerCanvas(); renderProductionPreview(); };
+        function generateUID(serialNum) { const now = new Date(); const timeStr = String(now.getMonth() + 1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + String(now.getSeconds()).padStart(2,'0'); const uid = userData ? userData.shortId : "00"; const ser = String(serialNum).padStart(4,'0'); return `${timeStr}${uid}${ser}`; }
+        function renderElements(canvas, scale, previewMode) { const layout = layouts[currentSizeId]; const pName = selectedProduct ? selectedProduct.name : "PRODUCTO EJEMPLO"; const lot = document.getElementById('disp-lot').innerText; const exp = document.getElementById('disp-exp').innerText; const currentSerial = parseInt(document.getElementById('serial-start').value) || 1; const uidStr = generateUID(currentSerial); Object.keys(layout).forEach(key => { const item = layout[key]; if (item.visible === false) return; const el = document.createElement('div'); el.style.position = 'absolute'; el.style.left = (item.x * scale / 2) + 'px'; el.style.top = (item.y * scale / 2) + 'px'; el.style.transform = `rotate(${item.rotation || 0}deg)`; el.style.transformOrigin = "top left"; el.style.textAlign = item.align || 'left'; if (item.width > 0) { el.style.width = (item.width * scale / 2) + 'px'; el.style.whiteSpace = "normal"; el.style.wordWrap = "break-word"; } else { el.style.whiteSpace = "nowrap"; } if (!previewMode) { el.className = "draggable flex items-center p-1 select-none border border-transparent hover:border-blue-300"; if (key === selectedElementKey) el.classList.add('selected-element'); el.onmousedown = (e) => { e.stopPropagation(); selectElement(key); startDrag(e, key, el); }; el.ontouchstart = (e) => { e.stopPropagation(); selectElement(key); startDrag(e, key, el); } } if (key === 'qrCode') { const sz = item.size * 10 * (scale/2); el.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${uidStr}" style="width:${sz}px; height:${sz}px; mix-blend-mode:multiply">`; if(!previewMode) el.style.backgroundColor = "#eee"; } else if (key === 'logo') { const w = item.size * 10 * (scale/2); if(item.src) { el.innerHTML = `<img src="${item.src}" style="width:${w}px">`; } else { el.style.width = w + 'px'; el.style.height = w + 'px'; if(!previewMode) { el.style.background = "#ccc"; el.innerText = "LOGO"; el.className += " justify-center text-[8px] font-bold text-gray-500"; } } } else { el.style.fontSize = (item.size * 4 * (scale/2)) + 'px'; el.style.fontWeight = "bold"; el.style.lineHeight = "1"; if (key === 'productName') el.innerText = pName; if (key === 'serial') { el.innerText = uidStr; el.style.fontFamily = 'monospace'; } if (key === 'footer') el.innerText = `L:${lot} C:${exp}`; } canvas.appendChild(el); }); }
+        function renderDesignerCanvas() { const canvas = document.getElementById('designer-canvas'); const scale = 2; const wMM = currentSizeId === '4x6' ? 152 : 50; const hMM = currentSizeId === '4x6' ? 101 : 50; canvas.style.width = (wMM * scale) + 'px'; canvas.style.height = (hMM * scale) + 'px'; canvas.className = "bg-white shadow-2xl relative transition-all cursor-crosshair overflow-hidden canvas-bg border border-slate-300"; canvas.innerHTML = ''; canvas.onmousedown = (e) => { if (e.target === canvas) selectElement(null); }; renderElements(canvas, scale, false); }
+        function renderProductionPreview() { const container = document.getElementById('production-preview-wrapper'); const info = document.getElementById('preview-info'); container.innerHTML = ''; const scale = currentSizeId === '4x6' ? 1.5 : 2.5; const wMM = currentSizeId === '4x6' ? 152 : 50; const hMM = currentSizeId === '4x6' ? 101 : 50; const preview = document.createElement('div'); preview.style.width = (wMM * scale) + 'px'; preview.style.height = (hMM * scale) + 'px'; preview.className = "bg-white border-2 border-black relative shadow-lg overflow-hidden"; renderElements(preview, scale, true); container.appendChild(preview); info.innerText = `TAMAÑO: ${currentSizeId} (${wMM}mm x ${hMM}mm)`; }
+        window.selectElement = (key) => { selectedElementKey = key; document.getElementById('object-selector').value = key || ""; renderDesignerCanvas(); updatePropertiesPanel(); }
+        function updatePropertiesPanel() { const panel = document.getElementById('element-properties'); const noSel = document.getElementById('no-selection'); if (layouts[currentSizeId].logo) { document.getElementById('toggle-logo').checked = layouts[currentSizeId].logo.visible !== false; document.getElementById('logo-uploader').className = document.getElementById('toggle-logo').checked ? "space-y-2" : "hidden space-y-2"; } if (!selectedElementKey) { panel.classList.add('hidden'); noSel.classList.remove('hidden'); return; } panel.classList.remove('hidden'); noSel.classList.add('hidden'); const item = layouts[currentSizeId][selectedElementKey]; document.getElementById('sel-el-name').innerText = selectedElementKey; document.getElementById('prop-x').value = item.x; document.getElementById('prop-y').value = item.y; document.getElementById('prop-size').value = item.size; document.getElementById('val-size').innerText = item.size; document.getElementById('prop-width').value = item.width || 0; document.getElementById('prop-width-container').style.display = (item.type === 'text') ? 'block' : 'none'; }
+        window.updateSelectedProp = (prop, value) => { if (!selectedElementKey) return; let val = value; if (['x','y','size','width'].includes(prop)) val = parseInt(value); layouts[currentSizeId][selectedElementKey][prop] = val; if (prop === 'size') document.getElementById('val-size').innerText = val; renderDesignerCanvas(); };
+        window.centerElement = () => { if (!selectedElementKey) return; const canvasW = currentSizeId === '4x6' ? 1216 : 400; layouts[currentSizeId][selectedElementKey].x = Math.round(canvasW / 2); layouts[currentSizeId][selectedElementKey].align = 'center'; updatePropertiesPanel(); renderDesignerCanvas(); };
+        window.toggleLogo = (checked) => { if (!layouts[currentSizeId].logo) layouts[currentSizeId].logo = { ...default4x6.logo }; layouts[currentSizeId].logo.visible = checked; updatePropertiesPanel(); renderDesignerCanvas(); }
+        function startDrag(e, key, el) { isDragging = true; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const rect = el.getBoundingClientRect(); dragOffset.x = clientX - rect.left; dragOffset.y = clientY - rect.top; }
+        window.addEventListener('mousemove', handleDrag); window.addEventListener('touchmove', handleDrag, {passive: false}); window.addEventListener('mouseup', () => isDragging = false); window.addEventListener('touchend', () => isDragging = false);
+        function handleDrag(e) { if (!isDragging || !selectedElementKey) return; e.preventDefault(); const canvas = document.getElementById('designer-canvas'); const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const scale = 2; const printerX = Math.round((clientX - rect.left - dragOffset.x) * 2 / scale); const printerY = Math.round((clientY - rect.top - dragOffset.y) * 2 / scale); layouts[currentSizeId][selectedElementKey].x = printerX; layouts[currentSizeId][selectedElementKey].y = printerY; document.getElementById('prop-x').value = printerX; document.getElementById('prop-y').value = printerY; renderDesignerCanvas(); }
+        window.handleLogoUpload = (input) => { const file = input.files[0]; if(!file || file.size > 500000) return showNotify("Imagen inválida o > 500KB", "error"); const reader = new FileReader(); reader.onload = (e) => { if(!layouts[currentSizeId].logo) layouts[currentSizeId].logo = { ...layouts['4x6'].logo }; layouts[currentSizeId].logo.src = e.target.result; layouts[currentSizeId].logo.visible = true; document.getElementById('toggle-logo').checked = true; renderDesignerCanvas(); showNotify("Logo cargado. Recuerda GUARDAR.", "success"); }; reader.readAsDataURL(file); };
+        window.testConnection = async () => { const ip = document.getElementById('esp-ip').value; const btn = document.querySelector('button[onclick="testConnection()"]'); btn.innerHTML = "PROBANDO..."; btn.className = "bg-yellow-500 text-slate-900 p-2 rounded h-10 font-bold text-xs"; try { const controller = new AbortController(); setTimeout(() => controller.abort(), 2000); await fetch(`http://${ip}/status`, { signal: controller.signal, mode: 'cors' }); showNotify("¡Conexión Exitosa!", "success"); btn.innerHTML = "CONECTADO"; btn.className = "bg-green-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-red-500', 'bg-green-500'); } catch (e) { showNotify("No se encuentra el ESP32", "error"); btn.innerHTML = "FALLÓ"; btn.className = "bg-red-600 text-white p-2 rounded h-10 font-bold text-xs"; document.getElementById('status-printer').classList.replace('bg-green-500', 'bg-red-500'); } setTimeout(() => { btn.innerHTML = "PROBAR CONEXIÓN"; btn.className = "bg-slate-800 text-white p-2 rounded hover:bg-slate-700 h-10 font-bold text-xs"; }, 3000); };
+        function updateQtyCalc() { const s = parseInt(document.getElementById('serial-start').value) || 0; const e = parseInt(document.getElementById('serial-end').value) || 0; let q = (e - s) + 1; if(q < 0) q = 0; document.getElementById('qty-calc').innerText = q; }
+        function updateDates() { const today = new Date(); const dur = parseInt(document.getElementById('exp-duration').value) || 0; const unit = document.getElementById('exp-unit').value; const future = new Date(); if(unit === 'days') future.setDate(today.getDate() + dur); if(unit === 'months') future.setMonth(today.getMonth() + dur); if(unit === 'years') future.setFullYear(today.getFullYear() + dur); const fmt = d => { const mo = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]; return `${String(d.getDate()).padStart(2,'0')} ${mo[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`; }; document.getElementById('disp-lot').innerText = fmt(today); document.getElementById('disp-exp').innerText = fmt(future); if(typeof renderProductionPreview === 'function') renderProductionPreview(); }
+        document.getElementById('exp-duration').addEventListener('input', updateDates); document.getElementById('exp-unit').addEventListener('change', updateDates); document.getElementById('serial-start').addEventListener('input', () => { updateQtyCalc(); renderProductionPreview(); }); document.getElementById('serial-end').addEventListener('input', updateQtyCalc);
+        function showLogin() { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('app-screen').style.display = 'none'; }
+        function showApp() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'block'; if(userData) { document.getElementById('user-short-id').textContent = userData.shortId; document.getElementById('user-display-name').textContent = userData.username; } }
+        const authForm = document.getElementById('auth-form'); const toggleAuth = document.getElementById('toggle-auth'); let isRegisterMode = false; toggleAuth.addEventListener('click', () => { isRegisterMode = !isRegisterMode; document.getElementById('register-field').style.display = isRegisterMode ? 'block' : 'none'; 
+            if(isRegisterMode) { document.getElementById('auth-header').classList.replace('bg-yellow-500', 'bg-blue-600'); document.getElementById('auth-header').classList.add('text-white'); document.getElementById('auth-subtitle').innerText = "CREAR CUENTA NUEVA"; document.getElementById('auth-btn').textContent = "REGISTRARME"; document.getElementById('auth-btn').classList.replace('bg-slate-900', 'bg-blue-600'); document.getElementById('auth-btn').classList.replace('text-yellow-500', 'text-white'); toggleAuth.innerHTML = '¿YA TIENES CUENTA? <span class="text-blue-600 underline">INICIA SESIÓN</span>'; } 
+            else { document.getElementById('auth-header').classList.replace('bg-blue-600', 'bg-yellow-500'); document.getElementById('auth-header').classList.remove('text-white'); document.getElementById('auth-subtitle').innerText = "INICIAR SESIÓN"; document.getElementById('auth-btn').textContent = "ENTRAR AL SISTEMA"; document.getElementById('auth-btn').classList.replace('bg-blue-600', 'bg-slate-900'); document.getElementById('auth-btn').classList.replace('text-white', 'text-yellow-500'); toggleAuth.innerHTML = '¿NO TIENES CUENTA? <span class="text-blue-600 underline">REGÍSTRATE AQUÍ</span>'; }
+        }); 
+        authForm.addEventListener('submit', async (e) => { e.preventDefault(); const userIn = document.getElementById('login-username').value.trim(); const passIn = document.getElementById('login-password').value; const regName = document.getElementById('reg-realname').value.trim(); const cleanUser = userIn.replace(/[^a-zA-Z0-9]/g, "").toLowerCase(); const fakeEmail = `${cleanUser}@sistema.local`; const errorDiv = document.getElementById('auth-error'); const errorMsg = document.getElementById('auth-error-msg'); errorDiv.classList.add('hidden'); if (passIn.length < 6) { errorMsg.innerText = "La contraseña debe tener al menos 6 caracteres"; errorDiv.classList.remove('hidden'); return; } try { if (isRegisterMode) { const cred = await createUserWithEmailAndPassword(auth, fakeEmail, passIn); const snap = await getDocs(collection(db, "users")); const shortId = String(snap.size).padStart(2, '0'); await setDoc(doc(db, "users", cred.user.uid), { username: userIn.toUpperCase(), realName: regName.toUpperCase(), shortId: shortId, email: fakeEmail, password: passIn, createdAt: serverTimestamp() }); userData = { username: userIn.toUpperCase(), shortId }; } else { await signInWithEmailAndPassword(auth, fakeEmail, passIn); } } catch (error) { console.error(error); let msg = "Error desconocido"; if(error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = "Usuario o contraseña incorrectos"; if(error.code === 'auth/email-already-in-use') msg = "El usuario ya existe. Intenta iniciar sesión."; if(error.code === 'auth/invalid-email') msg = "Nombre de usuario inválido (usa solo letras y números)."; if(error.code === 'auth/weak-password') msg = "La contraseña debe tener al menos 6 caracteres."; if(error.code === 'auth/operation-not-allowed') msg = "Habilita Email/Pass en Firebase Console"; errorMsg.innerText = msg; errorDiv.classList.remove('hidden'); } }); 
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        function initDataListeners() { const q = query(collection(db, "products"), orderBy("name")); onSnapshot(q, (snapshot) => { products = []; snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() })); document.getElementById('status-db').classList.replace('bg-red-500', 'bg-green-500'); }); const hq = query(collection(db, "print_history"), orderBy("timestamp", "desc"), limit(20)); onSnapshot(hq, (snapshot) => { const list = document.getElementById('history-list'); list.innerHTML = ''; snapshot.forEach(doc => { const d = doc.data(); const date = d.timestamp ? d.timestamp.toDate().toLocaleString() : '...'; list.innerHTML += `<div class="border-b pb-2 mb-2"><div class="flex justify-between font-bold text-sm"><span>${d.product}</span><span class="text-xs text-slate-400">${date}</span></div><div class="text-xs text-slate-500 flex gap-3"><span class="bg-yellow-100 px-1 rounded">LOTE: ${d.lot}</span><span>RANGO: ${d.startSerial}-${d.endSerial}</span></div></div>`; }); }); }
+        const searchIn = document.getElementById('prod-search'); const prodList = document.getElementById('prod-list'); searchIn.addEventListener('input', (e) => { const term = e.target.value.toUpperCase(); prodList.innerHTML = ''; if (term.length > 0) { const filtered = products.filter(p => p.name.includes(term) || p.code.includes(term)); filtered.forEach(p => { const div = document.createElement('div'); div.className = "p-3 hover:bg-yellow-50 cursor-pointer border-b border-slate-100"; div.innerHTML = `<span class="font-bold text-slate-900 block">${p.code}</span><span class="text-xs text-slate-500">${p.name}</span>`; div.onclick = () => { selectedProduct = p; searchIn.value = p.name; prodList.classList.add('hidden'); document.getElementById('clear-search').classList.remove('hidden'); renderProductionPreview(); }; prodList.appendChild(div); }); prodList.classList.remove('hidden'); } else { prodList.classList.add('hidden'); } }); document.getElementById('clear-search').addEventListener('click', () => { selectedProduct = null; searchIn.value = ''; document.getElementById('clear-search').classList.add('hidden'); renderProductionPreview(); });
+        window.showNotify = (msg, type) => { const notif = document.getElementById('notification'); const txt = document.getElementById('notif-msg'); notif.className = `fixed top-24 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 z-50 ${type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`; txt.innerText = msg; notif.classList.remove('hidden'); setTimeout(() => notif.classList.add('hidden'), 3000); };
+        window.importProducts = async () => { const text = document.getElementById('import-text').value; const lines = text.split('\n'); for(let line of lines) { const [code, name] = line.split('\t'); if(code && name) await addDoc(collection(db, "products"), { code: code.trim(), name: name.trim() }); } showNotify("Importación finalizada", "success"); };
+        window.switchTab = (tabId) => { ['production', 'history', 'settings'].forEach(t => { document.getElementById(`view-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).classList.replace('active-tab-btn', 'inactive-tab-btn'); }); document.getElementById(`view-${tabId}`).classList.remove('hidden'); document.getElementById(`tab-${tabId}`).classList.replace('inactive-tab-btn', 'active-tab-btn'); if(tabId === 'designer') { document.getElementById('view-designer').classList.remove('hidden'); setTimeout(renderDesignerCanvas, 100); } else { document.getElementById('view-designer').classList.add('hidden'); } if(tabId === 'production') renderProductionPreview(); };
+
+        switchTab('production');
     </script>
 </body>
 </html>
